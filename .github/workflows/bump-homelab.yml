@@ -1,0 +1,146 @@
+---
+name: Bump homelab
+
+# Closes the loop: raises the blog chart version in the GitOps repository so
+# ArgoCD picks up the release. Only the chart version moves there -- the image
+# digest lives inside the chart, which keeps this repository's convention of a
+# single semver on the line after a `# renovate:` comment intact.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Chart and image version to roll out
+        required: true
+        type: string
+      digest:
+        description: Image digest, quoted in the pull request body for traceability
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Chart version to roll out
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  HOMELAB_REPO: ${{ github.repository_owner }}/homelab
+  HOMELAB_FILE: kubernetes/bootstrap/argocd/homelab.yaml
+
+jobs:
+  bump:
+    name: Open the version bump pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Mint a token for the homelab repository
+        id: token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.HOMELAB_APP_ID }}
+          private-key: ${{ secrets.HOMELAB_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: homelab
+
+      - uses: actions/checkout@v5
+        with:
+          repository: ${{ env.HOMELAB_REPO }}
+          token: ${{ steps.token.outputs.token }}
+          path: homelab
+          fetch-depth: 0
+
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+          install: false
+          tool_versions: |
+            yq 4.48.1
+
+      - name: Raise the chart version
+        id: edit
+        working-directory: homelab
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ ! -f "$HOMELAB_FILE" ]; then
+            echo "::error::$HOMELAB_FILE not found in $HOMELAB_REPO"
+            exit 1
+          fi
+
+          current="$(yq -r '.applications.blog.helm.chart.version // ""' "$HOMELAB_FILE")"
+          if [ -z "$current" ]; then
+            echo "::error::No 'blog' application in $HOMELAB_FILE."
+            echo "::error::Add it once by hand (see charts/blog/README.md); this workflow only bumps an existing entry."
+            exit 1
+          fi
+
+          if [ "$current" = "$VERSION" ]; then
+            echo "Already at $VERSION."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # yq rewrites in place and preserves the surrounding `# renovate:`
+          # comment, which the homelab's regex manager depends on.
+          VERSION="$VERSION" yq -i \
+            '.applications.blog.helm.chart.version = strenv(VERSION)' "$HOMELAB_FILE"
+
+          updated="$(yq -r '.applications.blog.helm.chart.version' "$HOMELAB_FILE")"
+          if [ "$updated" != "$VERSION" ]; then
+            echo "::error::Rewrite did not take effect (still '$updated')."
+            exit 1
+          fi
+          if ! grep -B2 -F "\"$VERSION\"" "$HOMELAB_FILE" | grep -q '# renovate:'; then
+            echo "::warning::The renovate comment above the blog chart version appears to have been lost."
+          fi
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "previous=$current" >> "$GITHUB_OUTPUT"
+          git --no-pager diff -- "$HOMELAB_FILE"
+
+      - name: Open and auto-merge the pull request
+        if: steps.edit.outputs.changed == 'true'
+        working-directory: homelab
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          VERSION: ${{ inputs.version }}
+          PREVIOUS: ${{ steps.edit.outputs.previous }}
+          DIGEST: ${{ inputs.digest }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          branch="chore/blog-${VERSION}"
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$branch"
+          git add "$HOMELAB_FILE"
+          git commit -m "chore(blog): bump chart to ${VERSION}"
+          git push --force-with-lease origin "$branch"
+
+          body="$(cat <<BODY
+          Rolls the blog out to \`${VERSION}\` (was \`${PREVIOUS}\`).
+
+          - Chart: \`oci://ghcr.io/${{ github.repository_owner }}/charts/blog:${VERSION}\`
+          - Image: \`ghcr.io/${{ github.repository }}:${VERSION}${DIGEST:+@${DIGEST}}\`
+
+          The chart pins the image by digest internally, so this single version
+          change is enough to resolve one immutable build.
+
+          Published by [${{ github.workflow }}](${RUN_URL}).
+          BODY
+          )"
+
+          url="$(gh pr create \
+            --title "chore(blog): bump chart to ${VERSION}" \
+            --body "$body" \
+            --base main \
+            --head "$branch" \
+            --label automated 2>/dev/null || gh pr view "$branch" --json url --jq .url)"
+          echo "Pull request: $url"
+
+          # Auto-merge still waits on the homelab repository's own checks.
+          gh pr merge "$branch" --auto --squash --delete-branch \
+            || echo "::warning::Could not enable auto-merge; merge $url by hand."

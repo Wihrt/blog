@@ -1,8 +1,19 @@
-# Ignore node_modules directory
-node_modules/
+# Deny everything, then allow only what the Hugo build consumes. An allowlist
+# means a new top-level file cannot silently enlarge the build context or leak
+# into the image.
+*
 
-# Ignore build output
-dist/
+!go.mod
+!go.sum
+!hugo.toml
+!Caddyfile
+!archetypes/
+!assets/
+!content/
+!data/
+!layouts/
+!static/
 
-# Ignore git metadata
-.git/
+# Never ship build output or local caches even from the allowed directories.
+**/.DS_Store
+**/*.swp

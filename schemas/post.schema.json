@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Wihrt/blog/schemas/post.schema.json",
+  "title": "Blog post front matter",
+  "description": "Contract every file under content/posts/ must satisfy. Automated authors (n8n) are validated against this in CI before a pull request can auto-merge.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "slug", "date", "description", "tags", "draft"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 70,
+      "description": "Rendered as the H1 and the <title>. Capped at 70 characters because search engines truncate beyond that."
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "minLength": 3,
+      "maxLength": 80,
+      "description": "Lowercase kebab-case. Becomes the permalink under /posts/, so it must never change once published."
+    },
+    "date": {
+      "type": "string",
+      "description": "Publication timestamp, RFC 3339 with an explicit offset."
+    },
+    "lastmod": {
+      "type": "string",
+      "description": "Last modification timestamp, RFC 3339 with an explicit offset."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 50,
+      "maxLength": 160,
+      "description": "Meta description and social card summary. Search engines show roughly 50-160 characters."
+    },
+    "tags": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "description": "Must all exist in data/tags.yaml. Checked separately by validate_content.py."
+    },
+    "draft": {
+      "type": "boolean",
+      "description": "Drafts are excluded from the production build."
+    },
+    "author": { "type": "string", "minLength": 2 },
+    "canonicalURL": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "weight": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Lower values pin a post to the top of the list."
+    },
+    "cover": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "image": { "type": "string" },
+        "alt": { "type": "string" },
+        "caption": { "type": "string" },
+        "relative": { "type": "boolean" },
+        "hidden": { "type": "boolean" }
+      }
+    },
+    "ShowToc": { "type": "boolean" },
+    "TocOpen": { "type": "boolean" },
+    "ShowReadingTime": { "type": "boolean" },
+    "ShowShareButtons": { "type": "boolean" },
+    "hidemeta": { "type": "boolean" },
+    "searchHidden": { "type": "boolean" },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^/" },
+      "description": "Old paths to redirect from. Required when a slug has to change after publication."
+    }
+  }
+}

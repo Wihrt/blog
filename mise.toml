@@ -1,0 +1,129 @@
+[settings]
+experimental = true
+
+[tools]
+# renovate: datasource=github-releases depName=gohugoio/hugo extractVersion=^v(?<version>.*)$
+hugo = "0.165.0"
+# renovate: datasource=golang-version depName=go
+go = "1.27.0"
+# renovate: datasource=github-releases depName=helm/helm extractVersion=^v(?<version>.*)$
+helm = "3.20.1"
+# renovate: datasource=github-releases depName=norwoodj/helm-docs extractVersion=^v(?<version>.*)$
+helm-docs = "1.14.2"
+# renovate: datasource=github-releases depName=yannh/kubeconform extractVersion=^v(?<version>.*)$
+kubeconform = "0.7.0"
+# renovate: datasource=github-releases depName=hadolint/hadolint extractVersion=^v(?<version>.*)$
+hadolint = "2.15.1"
+# renovate: datasource=github-releases depName=rhysd/actionlint extractVersion=^v(?<version>.*)$
+actionlint = "1.7.8"
+# renovate: datasource=github-releases depName=lycheeverse/lychee extractVersion=^lychee-v(?<version>.*)$
+lychee = "0.20.1"
+# renovate: datasource=github-releases depName=aquasecurity/trivy extractVersion=^v(?<version>.*)$
+trivy = "0.74.0"
+# renovate: datasource=github-releases depName=sigstore/cosign extractVersion=^v(?<version>.*)$
+cosign = "2.6.1"
+# renovate: datasource=github-releases depName=mikefarah/yq extractVersion=^v(?<version>.*)$
+yq = "4.48.1"
+# renovate: datasource=github-releases depName=google/yamlfmt extractVersion=^v(?<version>.*)$
+yamlfmt = "0.21.0"
+# renovate: datasource=pypi depName=pre-commit
+pre-commit = "4.4.0"
+# renovate: datasource=github-releases depName=astral-sh/uv
+uv = "0.9.9"
+
+[env]
+HUGO_ENV = "production"
+IMAGE = "ghcr.io/wihrt/blog"
+
+[hooks]
+enter = """
+pre-commit install --install-hooks >/dev/null 2>&1 || true
+pre-commit install --hook-type commit-msg >/dev/null 2>&1 || true
+helm plugin list 2>/dev/null | grep -q '^schema' || helm plugin install https://github.com/dadav/helm-schema --verify=false >/dev/null 2>&1 || true
+helm plugin list 2>/dev/null | grep -q '^unittest' || helm plugin install https://github.com/helm-unittest/helm-unittest >/dev/null 2>&1 || true
+"""
+
+[tasks.bootstrap]
+description = "Install every local dependency (Hugo modules, pre-commit hooks, Helm plugins)"
+run = [
+  "hugo mod get -u ./...",
+  "pre-commit install --install-hooks",
+  "pre-commit install --hook-type commit-msg",
+]
+
+[tasks.dev]
+description = "Run the Hugo dev server with drafts on http://localhost:1313"
+run = "hugo server --buildDrafts --buildFuture --navigateToChanged"
+
+[tasks.new]
+description = "Scaffold a new post: mise run new my-post-slug"
+run = 'hugo new content "posts/${1:?usage: mise run new <slug>}.md"'
+
+[tasks.build]
+description = "Build the production site into public/ (warnings are fatal)"
+run = "hugo --gc --minify --panicOnWarning --printPathWarnings"
+
+[tasks.clean]
+description = "Remove build output and Hugo caches"
+run = "rm -rf public resources .hugo_build.lock"
+
+[tasks.validate]
+description = "Validate every post's front matter against schemas/post.schema.json"
+run = "uv run --quiet scripts/validate_content.py"
+
+[tasks.links]
+description = "Check every internal link in the built site (run build first)"
+# --root-dir resolves site-absolute links such as /tags/ against public/ on
+# disk. It must be absolute, so it cannot live in the committed lychee.toml.
+# Without it lychee cannot even build a request for them and reports a warning,
+# which would make this check silently pass on a broken link.
+run = "lychee --config lychee.toml --root-dir \"{{config_root}}/public\" --no-progress public"
+
+[tasks.lint]
+description = "Run every pre-commit hook against the whole repo"
+run = "pre-commit run --all-files"
+
+[tasks."helm:lint"]
+description = "Lint the blog Helm chart"
+run = "helm lint charts/blog --strict"
+
+[tasks."helm:template"]
+description = "Render the blog chart manifests to stdout"
+run = "helm template blog charts/blog"
+
+[tasks."helm:docs"]
+description = "Regenerate charts/blog/README.md from values.yaml"
+run = "helm-docs --chart-search-root charts"
+
+[tasks."helm:schema"]
+description = "Regenerate charts/blog/values.schema.json from values.yaml"
+run = "helm schema --chart-search-root charts"
+
+[tasks."helm:test"]
+description = "Run the chart unit tests"
+run = "helm unittest charts/blog"
+
+[tasks."helm:verify"]
+description = "Render the chart and validate it against upstream Kubernetes schemas"
+run = "helm template blog charts/blog | kubeconform -strict -summary -ignore-missing-schemas -kubernetes-version 1.34.0"
+
+[tasks."docker:build"]
+description = "Build the container image locally as blog:dev"
+run = "docker build -t blog:dev ."
+
+[tasks."docker:run"]
+description = "Run blog:dev the way Kubernetes does (read-only, non-root) on :8080"
+run = "docker run --rm --read-only --user 1000:1000 --tmpfs /tmp --cap-drop ALL -p 8080:8080 --name blog-dev blog:dev"
+
+[tasks."docker:lint"]
+description = "Lint the Dockerfile"
+run = "hadolint Dockerfile"
+
+[tasks.actionlint]
+description = "Lint the GitHub Actions workflows"
+run = "actionlint"
+
+[tasks.ci]
+description = "Run the full CI pipeline locally, in the same order as GitHub Actions"
+depends = ["lint", "validate", "build", "links", "helm:lint", "helm:test", "helm:verify", "docker:lint"]
+run = "echo 'All CI checks passed.'"

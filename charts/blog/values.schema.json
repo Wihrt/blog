@@ -1,0 +1,883 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "affinity": {
+      "additionalProperties": false,
+      "description": "Affinity rules.",
+      "required": [],
+      "title": "affinity",
+      "type": "object"
+    },
+    "autoscaling": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "description": "Create a HorizontalPodAutoscaler.",
+          "title": "enabled",
+          "type": "boolean"
+        },
+        "maxReplicas": {
+          "default": 4,
+          "description": "Maximum replicas.",
+          "title": "maxReplicas",
+          "type": "integer"
+        },
+        "minReplicas": {
+          "default": 2,
+          "description": "Minimum replicas.",
+          "title": "minReplicas",
+          "type": "integer"
+        },
+        "targetCPUUtilizationPercentage": {
+          "default": 80,
+          "description": "Target average CPU utilisation.",
+          "title": "targetCPUUtilizationPercentage",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "enabled",
+        "minReplicas",
+        "maxReplicas",
+        "targetCPUUtilizationPercentage"
+      ],
+      "title": "autoscaling",
+      "type": "object"
+    },
+    "containerPort": {
+      "default": 8080,
+      "description": "Container port. Must match the `:8080` site block in the image's Caddyfile.",
+      "title": "containerPort",
+      "type": "integer"
+    },
+    "extraEnv": {
+      "description": "Extra environment variables.",
+      "items": {
+        "required": []
+      },
+      "title": "extraEnv",
+      "type": "array"
+    },
+    "extraVolumeMounts": {
+      "description": "Extra volume mounts.",
+      "items": {
+        "required": []
+      },
+      "title": "extraVolumeMounts",
+      "type": "array"
+    },
+    "extraVolumes": {
+      "description": "Extra volumes. `/tmp` is always mounted because the root filesystem is\nread-only and Caddy needs a writable XDG directory.",
+      "items": {
+        "required": []
+      },
+      "title": "extraVolumes",
+      "type": "array"
+    },
+    "fullnameOverride": {
+      "default": "blog",
+      "description": "Override the full generated resource name.",
+      "title": "fullnameOverride",
+      "type": "string"
+    },
+    "gatus": {
+      "additionalProperties": false,
+      "properties": {
+        "conditions": {
+          "description": "Conditions the response must satisfy.",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "required": []
+          },
+          "title": "conditions",
+          "type": "array"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Create a GatusEndpoint for external uptime monitoring.",
+          "title": "enabled",
+          "type": "boolean"
+        },
+        "group": {
+          "default": "external",
+          "description": "Endpoint group.",
+          "title": "group",
+          "type": "string"
+        },
+        "interval": {
+          "default": "1m",
+          "description": "Check interval.",
+          "title": "interval",
+          "type": "string"
+        }
+      },
+      "required": [
+        "enabled",
+        "group",
+        "interval",
+        "conditions"
+      ],
+      "title": "gatus",
+      "type": "object"
+    },
+    "global": {
+      "description": "Global values are values that can be accessed from any chart or subchart by exactly the same name.",
+      "required": [],
+      "title": "global",
+      "type": "object"
+    },
+    "image": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "default": "",
+          "description": "Image digest (`sha256:...`). When set it is appended to the tag, which\npins the deployment to one immutable build even though the homelab repo only\never tracks a chart version. Rewritten by the release workflow.",
+          "title": "digest",
+          "type": "string"
+        },
+        "pullPolicy": {
+          "default": "IfNotPresent",
+          "description": "Image pull policy.",
+          "title": "pullPolicy",
+          "type": "string"
+        },
+        "repository": {
+          "default": "ghcr.io/wihrt/blog",
+          "description": "Image repository.",
+          "title": "repository",
+          "type": "string"
+        },
+        "tag": {
+          "default": "",
+          "description": "Image tag. Rewritten by the release workflow; defaults to `.Chart.AppVersion`.",
+          "title": "tag",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository",
+        "tag",
+        "digest",
+        "pullPolicy"
+      ],
+      "title": "image",
+      "type": "object"
+    },
+    "imagePullSecrets": {
+      "description": "Image pull secrets.",
+      "items": {
+        "required": []
+      },
+      "title": "imagePullSecrets",
+      "type": "array"
+    },
+    "ingress": {
+      "additionalProperties": false,
+      "properties": {
+        "annotations": {
+          "additionalProperties": false,
+          "description": "Extra annotations. cert-manager issues the certificate named in `tls`.",
+          "properties": {
+            "cert-manager.io/cluster-issuer": {
+              "default": "letsencrypt-prod",
+              "title": "cert-manager.io/cluster-issuer",
+              "type": "string"
+            },
+            "kubernetes.io/tls-acme": {
+              "default": "true",
+              "title": "kubernetes.io/tls-acme",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kubernetes.io/tls-acme",
+            "cert-manager.io/cluster-issuer"
+          ],
+          "title": "annotations",
+          "type": "object"
+        },
+        "className": {
+          "default": "traefik",
+          "description": "IngressClass to use.",
+          "title": "className",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Create an Ingress.",
+          "title": "enabled",
+          "type": "boolean"
+        },
+        "hosts": {
+          "items": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "host": {
+                    "default": "blog.brokenbymega.ovh",
+                    "title": "host",
+                    "type": "string"
+                  },
+                  "paths": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "path": {
+                              "default": "/",
+                              "title": "path",
+                              "type": "string"
+                            },
+                            "pathType": {
+                              "default": "Prefix",
+                              "title": "pathType",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "path",
+                            "pathType"
+                          ],
+                          "type": "object"
+                        }
+                      ],
+                      "required": []
+                    },
+                    "title": "paths",
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "host",
+                  "paths"
+                ],
+                "type": "object"
+              }
+            ],
+            "required": []
+          },
+          "title": "hosts",
+          "type": "array"
+        },
+        "tls": {
+          "items": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "hosts": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        }
+                      ],
+                      "required": []
+                    },
+                    "title": "hosts",
+                    "type": "array"
+                  },
+                  "secretName": {
+                    "default": "blog-tls",
+                    "title": "secretName",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "secretName",
+                  "hosts"
+                ],
+                "type": "object"
+              }
+            ],
+            "required": []
+          },
+          "title": "tls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "enabled",
+        "className",
+        "annotations",
+        "hosts",
+        "tls"
+      ],
+      "title": "ingress",
+      "type": "object"
+    },
+    "livenessProbe": {
+      "additionalProperties": false,
+      "description": "Liveness probe. Targets the dedicated `/healthz` endpoint in the Caddyfile.",
+      "properties": {
+        "failureThreshold": {
+          "default": 3,
+          "title": "failureThreshold",
+          "type": "integer"
+        },
+        "httpGet": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "default": "/healthz",
+              "title": "path",
+              "type": "string"
+            },
+            "port": {
+              "default": "http",
+              "title": "port",
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "port"
+          ],
+          "title": "httpGet",
+          "type": "object"
+        },
+        "initialDelaySeconds": {
+          "default": 3,
+          "title": "initialDelaySeconds",
+          "type": "integer"
+        },
+        "periodSeconds": {
+          "default": 20,
+          "title": "periodSeconds",
+          "type": "integer"
+        },
+        "timeoutSeconds": {
+          "default": 2,
+          "title": "timeoutSeconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "httpGet",
+        "initialDelaySeconds",
+        "periodSeconds",
+        "timeoutSeconds",
+        "failureThreshold"
+      ],
+      "title": "livenessProbe",
+      "type": "object"
+    },
+    "nameOverride": {
+      "default": "",
+      "description": "Override the chart name portion of resource names.",
+      "title": "nameOverride",
+      "type": "string"
+    },
+    "networkPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Create a CiliumNetworkPolicy.",
+          "title": "enabled",
+          "type": "boolean"
+        },
+        "ingressControllerLabels": {
+          "additionalProperties": false,
+          "description": "Pod labels identifying the ingress controller.",
+          "properties": {
+            "app.kubernetes.io/name": {
+              "default": "traefik",
+              "title": "app.kubernetes.io/name",
+              "type": "string"
+            }
+          },
+          "required": [
+            "app.kubernetes.io/name"
+          ],
+          "title": "ingressControllerLabels",
+          "type": "object"
+        },
+        "ingressControllerNamespace": {
+          "default": "kube-system",
+          "description": "Namespace the ingress controller runs in.",
+          "title": "ingressControllerNamespace",
+          "type": "string"
+        }
+      },
+      "required": [
+        "enabled",
+        "ingressControllerNamespace",
+        "ingressControllerLabels"
+      ],
+      "title": "networkPolicy",
+      "type": "object"
+    },
+    "nodeSelector": {
+      "additionalProperties": false,
+      "description": "Node selector.",
+      "required": [],
+      "title": "nodeSelector",
+      "type": "object"
+    },
+    "podAnnotations": {
+      "additionalProperties": false,
+      "description": "Extra annotations for the pod.",
+      "required": [],
+      "title": "podAnnotations",
+      "type": "object"
+    },
+    "podDisruptionBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Create a PodDisruptionBudget. Ignored when `replicaCount` is below 2.",
+          "title": "enabled",
+          "type": "boolean"
+        },
+        "minAvailable": {
+          "default": 1,
+          "description": "Minimum available pods during a voluntary disruption.",
+          "title": "minAvailable",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "enabled",
+        "minAvailable"
+      ],
+      "title": "podDisruptionBudget",
+      "type": "object"
+    },
+    "podLabels": {
+      "additionalProperties": false,
+      "description": "Extra labels for the pod.",
+      "required": [],
+      "title": "podLabels",
+      "type": "object"
+    },
+    "podSecurityContext": {
+      "additionalProperties": false,
+      "description": "Pod-level security context. Matches the image: it runs as uid/gid 1000 and\nthe Caddy binary has its file capabilities stripped at build time.",
+      "properties": {
+        "fsGroup": {
+          "default": 1000,
+          "title": "fsGroup",
+          "type": "integer"
+        },
+        "runAsGroup": {
+          "default": 1000,
+          "title": "runAsGroup",
+          "type": "integer"
+        },
+        "runAsNonRoot": {
+          "default": true,
+          "title": "runAsNonRoot",
+          "type": "boolean"
+        },
+        "runAsUser": {
+          "default": 1000,
+          "title": "runAsUser",
+          "type": "integer"
+        },
+        "seccompProfile": {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "default": "RuntimeDefault",
+              "title": "type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "seccompProfile",
+          "type": "object"
+        }
+      },
+      "required": [
+        "runAsNonRoot",
+        "runAsUser",
+        "runAsGroup",
+        "fsGroup",
+        "seccompProfile"
+      ],
+      "title": "podSecurityContext",
+      "type": "object"
+    },
+    "readinessProbe": {
+      "additionalProperties": false,
+      "description": "Readiness probe.",
+      "properties": {
+        "failureThreshold": {
+          "default": 3,
+          "title": "failureThreshold",
+          "type": "integer"
+        },
+        "httpGet": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "default": "/healthz",
+              "title": "path",
+              "type": "string"
+            },
+            "port": {
+              "default": "http",
+              "title": "port",
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "port"
+          ],
+          "title": "httpGet",
+          "type": "object"
+        },
+        "initialDelaySeconds": {
+          "default": 1,
+          "title": "initialDelaySeconds",
+          "type": "integer"
+        },
+        "periodSeconds": {
+          "default": 10,
+          "title": "periodSeconds",
+          "type": "integer"
+        },
+        "timeoutSeconds": {
+          "default": 2,
+          "title": "timeoutSeconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "httpGet",
+        "initialDelaySeconds",
+        "periodSeconds",
+        "timeoutSeconds",
+        "failureThreshold"
+      ],
+      "title": "readinessProbe",
+      "type": "object"
+    },
+    "replicaCount": {
+      "default": 2,
+      "description": "Number of replicas. Two by default so a node drain never takes the blog down.",
+      "title": "replicaCount",
+      "type": "integer"
+    },
+    "resources": {
+      "additionalProperties": false,
+      "description": "Resource requests and limits. A static file server needs very little; no\nCPU limit on purpose, so a traffic spike is not throttled.",
+      "properties": {
+        "limits": {
+          "additionalProperties": false,
+          "properties": {
+            "memory": {
+              "default": "64Mi",
+              "title": "memory",
+              "type": "string"
+            }
+          },
+          "required": [
+            "memory"
+          ],
+          "title": "limits",
+          "type": "object"
+        },
+        "requests": {
+          "additionalProperties": false,
+          "properties": {
+            "cpu": {
+              "default": "10m",
+              "title": "cpu",
+              "type": "string"
+            },
+            "memory": {
+              "default": "32Mi",
+              "title": "memory",
+              "type": "string"
+            }
+          },
+          "required": [
+            "cpu",
+            "memory"
+          ],
+          "title": "requests",
+          "type": "object"
+        }
+      },
+      "required": [
+        "requests",
+        "limits"
+      ],
+      "title": "resources",
+      "type": "object"
+    },
+    "securityContext": {
+      "additionalProperties": false,
+      "description": "Container-level security context.",
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "default": false,
+          "title": "allowPrivilegeEscalation",
+          "type": "boolean"
+        },
+        "capabilities": {
+          "additionalProperties": false,
+          "properties": {
+            "drop": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  }
+                ],
+                "required": []
+              },
+              "title": "drop",
+              "type": "array"
+            }
+          },
+          "required": [
+            "drop"
+          ],
+          "title": "capabilities",
+          "type": "object"
+        },
+        "privileged": {
+          "default": false,
+          "title": "privileged",
+          "type": "boolean"
+        },
+        "readOnlyRootFilesystem": {
+          "default": true,
+          "title": "readOnlyRootFilesystem",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "allowPrivilegeEscalation",
+        "readOnlyRootFilesystem",
+        "privileged",
+        "capabilities"
+      ],
+      "title": "securityContext",
+      "type": "object"
+    },
+    "service": {
+      "additionalProperties": false,
+      "properties": {
+        "annotations": {
+          "additionalProperties": false,
+          "description": "Extra annotations for the Service.",
+          "required": [],
+          "title": "annotations",
+          "type": "object"
+        },
+        "port": {
+          "default": 8080,
+          "description": "Service port.",
+          "title": "port",
+          "type": "integer"
+        },
+        "type": {
+          "default": "ClusterIP",
+          "description": "Service type.",
+          "title": "type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "port",
+        "annotations"
+      ],
+      "title": "service",
+      "type": "object"
+    },
+    "serviceAccount": {
+      "additionalProperties": false,
+      "properties": {
+        "annotations": {
+          "additionalProperties": false,
+          "description": "Annotations for the ServiceAccount.",
+          "required": [],
+          "title": "annotations",
+          "type": "object"
+        },
+        "automountServiceAccountToken": {
+          "default": false,
+          "description": "The blog never talks to the API server, so it needs no token.",
+          "title": "automountServiceAccountToken",
+          "type": "boolean"
+        },
+        "create": {
+          "default": true,
+          "description": "Create a dedicated ServiceAccount.",
+          "title": "create",
+          "type": "boolean"
+        },
+        "name": {
+          "default": "",
+          "description": "Name to use. Generated from the fullname when empty.",
+          "title": "name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "create",
+        "annotations",
+        "name",
+        "automountServiceAccountToken"
+      ],
+      "title": "serviceAccount",
+      "type": "object"
+    },
+    "startupProbe": {
+      "additionalProperties": false,
+      "description": "Startup probe.",
+      "properties": {
+        "failureThreshold": {
+          "default": 15,
+          "title": "failureThreshold",
+          "type": "integer"
+        },
+        "httpGet": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "default": "/healthz",
+              "title": "path",
+              "type": "string"
+            },
+            "port": {
+              "default": "http",
+              "title": "port",
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "port"
+          ],
+          "title": "httpGet",
+          "type": "object"
+        },
+        "periodSeconds": {
+          "default": 2,
+          "title": "periodSeconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "httpGet",
+        "periodSeconds",
+        "failureThreshold"
+      ],
+      "title": "startupProbe",
+      "type": "object"
+    },
+    "tolerations": {
+      "description": "Tolerations.",
+      "items": {
+        "required": []
+      },
+      "title": "tolerations",
+      "type": "array"
+    },
+    "topologySpreadConstraints": {
+      "description": "Topology spread constraints. Defaults to spreading replicas across nodes.",
+      "items": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "labelSelector": {
+                "additionalProperties": false,
+                "properties": {
+                  "matchLabels": {
+                    "additionalProperties": false,
+                    "required": [],
+                    "title": "matchLabels",
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "matchLabels"
+                ],
+                "title": "labelSelector",
+                "type": "object"
+              },
+              "maxSkew": {
+                "default": 1,
+                "title": "maxSkew",
+                "type": "integer"
+              },
+              "topologyKey": {
+                "default": "kubernetes.io/hostname",
+                "title": "topologyKey",
+                "type": "string"
+              },
+              "whenUnsatisfiable": {
+                "default": "ScheduleAnyway",
+                "title": "whenUnsatisfiable",
+                "type": "string"
+              }
+            },
+            "required": [
+              "maxSkew",
+              "topologyKey",
+              "whenUnsatisfiable",
+              "labelSelector"
+            ],
+            "type": "object"
+          }
+        ],
+        "required": []
+      },
+      "title": "topologySpreadConstraints",
+      "type": "array"
+    }
+  },
+  "required": [
+    "replicaCount",
+    "image",
+    "imagePullSecrets",
+    "nameOverride",
+    "fullnameOverride",
+    "serviceAccount",
+    "podAnnotations",
+    "podLabels",
+    "podSecurityContext",
+    "securityContext",
+    "service",
+    "containerPort",
+    "ingress",
+    "resources",
+    "livenessProbe",
+    "readinessProbe",
+    "startupProbe",
+    "podDisruptionBudget",
+    "autoscaling",
+    "networkPolicy",
+    "gatus",
+    "topologySpreadConstraints",
+    "nodeSelector",
+    "tolerations",
+    "affinity",
+    "extraVolumes",
+    "extraVolumeMounts",
+    "extraEnv"
+  ],
+  "type": "object"
+}

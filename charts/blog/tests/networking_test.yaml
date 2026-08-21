@@ -1,0 +1,62 @@
+---
+suite: networking
+tests:
+  - it: exposes the ingress host over TLS
+    template: ingress.yaml
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: traefik
+      - equal:
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
+          value: letsencrypt-prod
+      - equal:
+          path: spec.rules[0].host
+          value: blog.brokenbymega.ovh
+      - equal:
+          path: spec.tls[0].secretName
+          value: blog-tls
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 8080
+
+  - it: omits the ingress when disabled
+    template: ingress.yaml
+    set:
+      ingress.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: denies all egress and admits only the ingress controller and the node
+    template: networkpolicy.yaml
+    asserts:
+      - equal:
+          path: spec.egress
+          value: []
+      - equal:
+          path: spec.ingress[0].fromEndpoints[0].matchLabels["k8s:io.kubernetes.pod.namespace"]
+          value: kube-system
+      - equal:
+          path: spec.ingress[1].fromEntities
+          value:
+            - host
+            - remote-node
+
+  - it: derives the gatus check from the ingress host
+    template: gatus.yaml
+    asserts:
+      - equal:
+          path: spec.url
+          value: https://blog.brokenbymega.ovh/healthz
+      - equal:
+          path: spec.group
+          value: external
+
+  - it: skips the gatus check when there is no ingress
+    template: gatus.yaml
+    set:
+      ingress.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0

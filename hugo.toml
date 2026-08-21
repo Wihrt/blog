@@ -1,0 +1,128 @@
+baseURL = "https://blog.brokenbymega.ovh/"
+locale = "en-us"
+defaultContentLanguage = "en"
+title = "Wihrt's Blog"
+theme = ["github.com/adityatelange/hugo-PaperMod"]
+timeZone = "Europe/Paris"
+
+enableRobotsTXT = true
+enableGitInfo = false
+buildDrafts = false
+buildFuture = false
+buildExpired = false
+canonifyURLs = false
+summaryLength = 30
+
+[pagination]
+  pagerSize = 10
+
+# Fail the build instead of silently emitting a broken link.
+refLinksErrorLevel = "ERROR"
+
+[module]
+  [[module.imports]]
+    # renovate: datasource=go depName=github.com/adityatelange/hugo-PaperMod
+    path = "github.com/adityatelange/hugo-PaperMod"
+
+[permalinks]
+  posts = "/posts/:slug/"
+
+[taxonomies]
+  tag = "tags"
+
+[outputs]
+  # JSON on the home page feeds PaperMod's built-in Fuse.js search index.
+  home = ["HTML", "RSS", "JSON"]
+  page = ["HTML"]
+  section = ["HTML", "RSS"]
+
+[minify]
+  disableXML = true
+  minifyOutput = true
+
+[markup]
+  [markup.goldmark.renderer]
+    # Posts arrive from n8n; never let raw HTML through.
+    unsafe = false
+  [markup.highlight]
+    noClasses = false
+    codeFences = true
+    guessSyntax = true
+    lineNos = false
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 4
+
+[params]
+  env = "production"
+  author = "Arnaud Hatzenbuhler"
+  description = "Homelab, Kubernetes and infrastructure notes."
+  keywords = ["homelab", "kubernetes", "infrastructure", "devops"]
+  defaultTheme = "auto"
+  DateFormat = "2006-01-02"
+  mainSections = ["posts"]
+
+  ShowReadingTime = true
+  ShowShareButtons = true
+  ShowPostNavLinks = true
+  ShowBreadCrumbs = true
+  ShowCodeCopyButtons = true
+  ShowToc = true
+  TocOpen = false
+  ShowWordCount = true
+  ShowRssButtonInSectionTermList = true
+  disableScrollToTop = false
+  hidemeta = false
+  hideSummary = false
+  comments = false
+
+  [params.assets]
+    favicon = "/favicon.svg"
+    disableHLJS = true
+
+  [params.homeInfoParams]
+    Title = "Wihrt's Blog"
+    Content = "Homelab, Kubernetes and infrastructure notes."
+
+  [params.profileMode]
+    enabled = false
+
+  [params.fuseOpts]
+    isCaseSensitive = false
+    shouldSort = true
+    threshold = 0.4
+    minMatchCharLength = 0
+    keys = ["title", "permalink", "summary", "content"]
+
+  [[params.socialIcons]]
+    name = "github"
+    url = "https://github.com/Wihrt"
+  [[params.socialIcons]]
+    name = "rss"
+    url = "index.xml"
+
+[[menu.main]]
+  identifier = "posts"
+  name = "Posts"
+  url = "/posts/"
+  weight = 10
+[[menu.main]]
+  identifier = "tags"
+  name = "Tags"
+  url = "/tags/"
+  weight = 20
+[[menu.main]]
+  identifier = "archives"
+  name = "Archive"
+  url = "/archives/"
+  weight = 30
+[[menu.main]]
+  identifier = "search"
+  name = "Search"
+  url = "/search/"
+  weight = 40
+[[menu.main]]
+  identifier = "about"
+  name = "About"
+  url = "/about/"
+  weight = 50

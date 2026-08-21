@@ -1,46 +1,179 @@
+---
 name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+  workflow_call:
 
 permissions:
   contents: read
 
-on:
-  pull_request:
-    types:
-      - opened
-      - edited
-      - synchronize
-      - reopened
-  workflow_call:
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MISE_YES: "1"
 
 jobs:
-  build:
-    name: Code standards & build
+  lint:
+    name: Lint and validate
     runs-on: ubuntu-latest
-    timeout-minutes: 3
-
+    timeout-minutes: 10
     steps:
-      - name: "☁️ Checkout repository"
-        uses: actions/checkout@v4
-
-      - name: "📦 Install pnpm"
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v5
         with:
-          version: "11.3.0"
+          fetch-depth: 0
 
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+      - uses: jdx/mise-action@v3
         with:
-          node-version: "24"
-          cache: "pnpm"
+          cache: true
 
-      - name: "📦 Install dependencies"
-        run: pnpm install --frozen-lockfile
+      - name: Install Helm plugins
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest
+          helm plugin install https://github.com/dadav/helm-schema
 
-      - name: "🔎 Lint code"
-        run: pnpm run lint
+      - name: Run every pre-commit hook
+        run: pre-commit run --all-files --show-diff-on-failure
 
-      - name: "📝 Checking code format"
-        run: pnpm run format:check
+      - name: Fail if a generated file is stale
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::Generated files are out of date. Run 'mise run lint' and commit the result."
+            git --no-pager diff
+            exit 1
+          fi
 
-      - name: "🚀 Build the project"
-        run: pnpm run build
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+
+      - name: Validate post front matter
+        run: mise run validate
+
+      - name: Build (warnings are fatal)
+        run: mise run build
+
+      - name: Check internal links
+        run: mise run links
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: public/
+          retention-days: 3
+
+  chart:
+    name: Helm chart
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+
+      - name: Install Helm plugins
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest
+
+      - run: mise run helm:lint
+      - run: mise run helm:test
+      - run: mise run helm:verify
+
+      - name: Refuse a chart whose image is not pinned by digest
+        # A published chart must never point at a mutable tag: the homelab repo
+        # tracks nothing but the chart version, so the digest is the only thing
+        # tying a release to one immutable build.
+        run: |
+          digest="$(yq -r '.image.digest' charts/blog/values.yaml)"
+          version="$(yq -r '.version' charts/blog/Chart.yaml)"
+          app="$(yq -r '.appVersion' charts/blog/Chart.yaml)"
+          if [ "$version" != "$app" ]; then
+            echo "::error file=charts/blog/Chart.yaml::version ($version) and appVersion ($app) must match"
+            exit 1
+          fi
+          if [ "$version" = "0.1.0" ] && [ -z "$digest" ]; then
+            echo "::notice::Chart still at its bootstrap version; digest check skipped."
+            exit 0
+          fi
+          case "$digest" in
+            sha256:*) echo "Chart $version pinned to $digest" ;;
+            *) echo "::error file=charts/blog/values.yaml::image.digest must be a sha256 digest"; exit 1 ;;
+          esac
+
+  image:
+    name: Container image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: blog:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify it runs the way Kubernetes runs it
+        # Read-only root, unprivileged user, no capabilities. Each of these has
+        # already broken this image once: Caddy's XDG paths need a writable
+        # /tmp, and its binary carried cap_net_bind_service, which cannot be
+        # exec'd with --cap-drop ALL.
+        run: |
+          docker run -d --rm --read-only --user 1000:1000 --tmpfs /tmp \
+            --cap-drop ALL -p 8080:8080 --name blog-ci blog:ci
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:8080/healthz >/dev/null && break
+            sleep 1
+          done
+          fail=0
+          check() {
+            actual="$(curl -so /dev/null -w '%{http_code}' "http://localhost:8080$1")"
+            if [ "$actual" != "$2" ]; then
+              echo "::error::$1 returned $actual, expected $2"
+              fail=1
+            fi
+          }
+          check /healthz 200
+          check / 200
+          check /posts/hello-world/ 200
+          check /index.xml 200
+          check /index.json 200
+          check /robots.txt 200
+          check /sitemap.xml 200
+          check /definitely-not-here 404
+          curl -sI http://localhost:8080/ | grep -qi '^x-content-type-options: nosniff' \
+            || { echo "::error::security headers missing"; fail=1; }
+          docker logs blog-ci
+          docker rm -f blog-ci >/dev/null
+          exit "$fail"
+
+      - name: Scan for vulnerabilities
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: blog:ci
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL

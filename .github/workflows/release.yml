@@ -1,0 +1,216 @@
+---
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Publish even if no commit warrants a version bump
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Never let two releases race: they would both bump the chart and open
+  # conflicting pull requests against the homelab repository.
+  group: release
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+  CHART_REGISTRY: ghcr.io/${{ github.repository_owner }}/charts
+  MISE_YES: "1"
+
+jobs:
+  verify:
+    name: Verify
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    uses: ./.github/workflows/ci.yml
+
+  version:
+    name: Compute version
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      bumped: ${{ steps.bump.outputs.bumped }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+
+      - name: Derive the next version from the commit history
+        id: bump
+        env:
+          FORCE: ${{ inputs.force }}
+        run: |
+          uv tool install commitizen
+          if cz bump --yes --changelog --git-output-to-stderr; then
+            version="$(cz version --project)"
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+          elif [ "$FORCE" = "true" ]; then
+            version="$(cz version --project)"
+            echo "No bump warranted; republishing $version on request."
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "No commit warrants a release."
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Releasing $version"
+
+      - name: Push the tag and changelog
+        if: steps.bump.outputs.bumped == 'true'
+        run: git push --follow-tags origin HEAD:main
+
+  publish:
+    name: Publish image and chart
+    needs: version
+    if: needs.version.outputs.version != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      packages: write
+      # Keyless signing exchanges this token for a short-lived certificate.
+      id-token: write
+      attestations: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - uses: jdx/mise-action@v3
+        with:
+          cache: true
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: |
+            ${{ env.IMAGE }}:${{ env.VERSION }}
+            ${{ env.IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.title=blog
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Sign the image
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - name: Attest the build provenance
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Pin the chart to this exact build
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          # The chart version and appVersion move together, and the digest is
+          # written into values.yaml. That is what lets the homelab repository
+          # track a single semver while still resolving an immutable image.
+          yq -i ".version = \"$VERSION\" | .appVersion = \"$VERSION\"" charts/blog/Chart.yaml
+          yq -i ".image.tag = \"$VERSION\" | .image.digest = \"$DIGEST\"" charts/blog/values.yaml
+          git --no-pager diff --stat charts/
+
+      - name: Verify the pinned chart still renders
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest
+          mise run helm:lint
+          mise run helm:test
+          mise run helm:verify
+          rendered="$(helm template blog charts/blog | yq -r 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image')"
+          expected="${IMAGE}:${VERSION}@${{ steps.build.outputs.digest }}"
+          if [ "$rendered" != "$expected" ]; then
+            echo "::error::Chart renders '$rendered' but the build produced '$expected'"
+            exit 1
+          fi
+          echo "Chart pinned to $rendered"
+
+      - name: Commit the pinned chart
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add charts/blog/Chart.yaml charts/blog/values.yaml
+          git commit -m "chore(chart): pin blog $VERSION [skip ci]"
+          git push origin HEAD:main
+
+      - name: Package, push and sign the chart
+        run: |
+          helm package charts/blog --destination /tmp/chart
+          # `helm push` prints the pushed manifest digest; capture it rather
+          # than re-resolving the tag, which could have moved in between.
+          helm push "/tmp/chart/blog-${VERSION}.tgz" "oci://${CHART_REGISTRY}" 2>&1 | tee /tmp/push.log
+          digest="$(grep -oE 'sha256:[0-9a-f]{64}' /tmp/push.log | head -1)"
+          if [ -z "$digest" ]; then
+            echo "::error::helm push did not report a digest; refusing to publish an unsigned chart."
+            exit 1
+          fi
+          cosign sign --yes "${CHART_REGISTRY}/blog@${digest}"
+          echo "Chart pushed and signed: ${CHART_REGISTRY}/blog:${VERSION}@${digest}"
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          # The tag was created by `cz bump` in the previous job.
+          gh release view "v${VERSION}" >/dev/null 2>&1 && exit 0
+          cat > /tmp/notes.md <<NOTES
+          Image: \`${IMAGE}:${VERSION}@${DIGEST}\`
+          Chart: \`oci://${CHART_REGISTRY}/blog:${VERSION}\`
+          NOTES
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --generate-notes \
+            --notes-file /tmp/notes.md
+
+  homelab:
+    name: Bump homelab
+    needs: [version, publish]
+    if: needs.version.outputs.version != ''
+    uses: ./.github/workflows/bump-homelab.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      digest: ${{ needs.publish.outputs.digest }}
+    secrets: inherit

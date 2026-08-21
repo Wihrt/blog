@@ -1,0 +1,122 @@
+---
+# Every hook here also runs in CI (`mise run lint`), so a green local commit and
+# a green pull request mean the same thing.
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+        exclude: ^charts/.*/values\.schema\.json$
+      - id: trailing-whitespace
+        exclude: ^charts/.*/README\.md$
+      - id: check-yaml
+        # Helm templates are Go templates, not YAML.
+        exclude: ^charts/.*/templates/
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: check-added-large-files
+        # Post images live in the repo and end up in the container image.
+        args: ["--maxkb=2048"]
+
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.21.0
+    hooks:
+      - id: yamlfmt
+        exclude: ^charts/.*/templates/
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/renovatebot/pre-commit-hooks
+    rev: 43.104.7
+    hooks:
+      - id: renovate-config-validator
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.19.0
+    hooks:
+      - id: markdownlint-cli2
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.10.0
+    hooks:
+      # release.yml derives the semver bump from commit messages, so a
+      # non-conventional message silently breaks versioning.
+      - id: commitizen
+        stages: [commit-msg]
+
+  - repo: local
+    hooks:
+      - id: hadolint
+        name: Lint the Dockerfile
+        language: system
+        entry: mise
+        args: ["exec", "--", "hadolint"]
+        files: ^Dockerfile$
+
+      - id: actionlint
+        name: Lint the GitHub Actions workflows
+        language: system
+        entry: mise
+        args: ["exec", "--", "actionlint"]
+        pass_filenames: false
+        files: ^\.github/workflows/.*\.ya?ml$
+
+      - id: validate-content
+        name: Validate post front matter
+        language: system
+        entry: mise
+        args: ["run", "validate"]
+        pass_filenames: false
+        files: ^(content/|data/tags\.yaml|schemas/post\.schema\.json|scripts/validate_content\.py)
+
+      - id: hugo-build
+        name: Build the site (warnings are fatal)
+        language: system
+        entry: mise
+        args: ["run", "build"]
+        pass_filenames: false
+        files: ^(content/|layouts/|assets/|static/|data/|hugo\.toml|go\.mod|go\.sum)
+
+      - id: helm-lint
+        name: Lint the Helm chart
+        language: system
+        entry: mise
+        args: ["run", "helm:lint"]
+        pass_filenames: false
+        files: ^charts/
+
+      - id: helm-unittest
+        name: Run the Helm chart unit tests
+        language: system
+        entry: mise
+        args: ["run", "helm:test"]
+        pass_filenames: false
+        files: ^charts/
+
+      - id: helm-docs
+        name: Regenerate the Helm chart README
+        language: system
+        entry: mise
+        args: ["run", "helm:docs"]
+        pass_filenames: false
+        files: ^charts/
+
+      - id: helm-schema
+        name: Regenerate the Helm chart values schema
+        language: system
+        entry: mise
+        args: ["run", "helm:schema"]
+        pass_filenames: false
+        files: ^charts/

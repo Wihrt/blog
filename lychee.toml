@@ -1,0 +1,34 @@
+# Link checking for the built site.
+#
+# Internal links are the ones that must never break: a bad relative path in a
+# post is invisible in the Hugo build but a 404 for every reader. External links
+# rot on someone else's schedule, so they are checked but never fail the build
+# (CI runs them with --accept and reports separately).
+
+cache = true
+max_cache_age = "2d"
+max_concurrency = 8
+max_redirects = 5
+timeout = 20
+retry_wait_time = 2
+max_retries = 2
+
+include_verbatim = false
+include_fragments = true
+
+# Presented as a real browser: several sites 403 anything that is not.
+user_agent = "Mozilla/5.0 (compatible; lychee/0.20; +https://blog.brokenbymega.ovh)"
+
+exclude_all_private = true
+exclude_loopback = true
+
+exclude = [
+  # The site is not yet reachable at its production URL while CI runs.
+  "^https://blog\\.brokenbymega\\.ovh",
+  # Rate-limits unauthenticated HEAD requests from CI runners.
+  "^https://(www\\.)?linkedin\\.com",
+  "^https://(www\\.)?x\\.com",
+  "^https://twitter\\.com",
+]
+
+accept = ["200..=204", "206", "429"]

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "timezone": "Europe/Paris",
+  "minimumReleaseAge": "3 days",
+  "prConcurrentLimit": 0,
+  "prHourlyLimit": 0,
+  "commitMessagePrefix": "chore(deps):",
+  "customManagers": [
+    {
+      "description": "Tool versions in mise.toml, pinned under a renovate comment (same convention as the homelab repo)",
+      "customType": "regex",
+      "managerFilePatterns": ["/^mise\\.toml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\s+\\S+\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver-coerced{{/if}}"
+    },
+    {
+      "description": "Hugo module path pinned in hugo.toml",
+      "customType": "regex",
+      "managerFilePatterns": ["/^hugo\\.toml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+path = \"(?<packageName>[^\"]+)\""
+      ],
+      "currentValueTemplate": "main",
+      "datasourceTemplate": "go"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Hugo binary and the Hugo builder image must move together, or a local build and the container build diverge",
+      "groupName": "hugo",
+      "matchPackageNames": ["gohugoio/hugo", "hugomods/hugo"]
+    },
+    {
+      "description": "Caddy runtime image",
+      "groupName": "caddy",
+      "matchPackageNames": ["caddy"]
+    },
+    {
+      "description": "PaperMod tracks main; batch it weekly rather than on every upstream commit",
+      "matchPackageNames": ["github.com/adityatelange/hugo-PaperMod"],
+      "schedule": ["before 6am on monday"],
+      "groupName": "papermod"
+    },
+    {
+      "description": "GitHub Actions are pinned to a commit SHA; keep the readable tag comment in sync",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "pinDigests": true
+    },
+    {
+      "description": "The blog's own artifacts are published by release.yml, never by Renovate",
+      "matchPackageNames": [
+        "ghcr.io/wihrt/blog",
+        "ghcr.io/wihrt/charts/blog"
+      ],
+      "enabled": false
+    }
+  ]
+}

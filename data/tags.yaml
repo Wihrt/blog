@@ -1,0 +1,27 @@
+---
+# Controlled vocabulary of allowed post tags.
+# `scripts/validate_content.py` rejects any post using a tag absent from this
+# list. Adding a tag is a deliberate human change: n8n cannot widen it, because
+# `guard-content.yml` lets automated PRs touch this file but CI still requires
+# every tag to already exist here at the time the post is validated.
+tags:
+  - ansible
+  - argocd
+  - automation
+  - caddy
+  - ci-cd
+  - cilium
+  - docker
+  - helm
+  - homelab
+  - hugo
+  - kubernetes
+  - linux
+  - monitoring
+  - n8n
+  - networking
+  - observability
+  - security
+  - self-hosted
+  - storage
+  - terraform
