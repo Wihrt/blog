@@ -32,6 +32,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      # Labels live on the issues API, and this job creates them.
+      issues: write
     steps:
       - name: Classify the author
         id: author
@@ -141,4 +143,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
           PROFILE: ${{ steps.author.outputs.profile }}
-        run: gh pr edit "$PR" --add-label automated --add-label "$PROFILE" || true
+        run: |
+          # auto-merge.yml gates on the 'content' label, so a pull request that
+          # fails to get labelled never merges. The labels are created here
+          # rather than assumed to exist in the repository: they did not, and
+          # because this step used to end in `|| true` the failure was silent --
+          # every automated pull request would have sat open forever with every
+          # check green.
+          gh label create automated    --color ededed --force \
+            --description "Opened by automation, not by a person"
+          gh label create content      --color 0e8a16 --force \
+            --description "Adds or edits an article"
+          gh label create dependencies --color 1d76db --force \
+            --description "Dependency manifest update"
+
+          # No `|| true`. If labelling fails the merge must not proceed
+          # silently: this check is required, so failing here fails closed.
+          gh pr edit "$PR" --add-label automated --add-label "$PROFILE"
