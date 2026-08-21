@@ -79,7 +79,12 @@ repos:
         entry: mise
         args: ["run", "validate"]
         pass_filenames: false
-        files: ^(content/|data/tags\.yaml|schemas/post\.schema\.json|scripts/validate_content\.py)
+        # always_run rather than a files: filter. pre-commit builds that filter
+        # from files present in the working tree, so a commit that only DELETES
+        # posts matches nothing and the hook never fires -- which is exactly how
+        # every post once reached a commit unnoticed. The check takes well under
+        # a second, so running it on every commit costs nothing worth saving.
+        always_run: true
 
       - id: hugo-build
         name: Build the site (warnings are fatal)
