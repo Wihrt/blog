@@ -1,9 +1,17 @@
 # Link checking for the built site.
 #
-# Internal links are the ones that must never break: a bad relative path in a
-# post is invisible in the Hugo build but a 404 for every reader. External links
-# rot on someone else's schedule, so they are checked but never fail the build
-# (CI runs them with --accept and reports separately).
+# Two passes, because the two kinds of link deserve different treatment.
+#
+# Internal links must never break: a bad path in a post is invisible in the
+# Hugo build but a 404 for every reader. `mise run links` checks those with
+# --offline -- no network, deterministic, and it fails the build.
+#
+# External links rot on someone else's schedule and can fail for reasons that
+# have nothing to do with this repository. `mise run links:external` reports
+# them without failing. This split used to be described in this comment and not
+# actually implemented, which is how a release broke on the theme's own
+# "Powered by Blowfish" footer link being unreachable from a CI runner while
+# returning 200 everywhere else.
 
 cache = true
 max_cache_age = "2d"

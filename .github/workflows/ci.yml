@@ -148,7 +148,24 @@ jobs:
         run: mise run build
 
       - name: Check internal links
+        # Blocking, offline, no network. A broken path in a post is a 404 for
+        # every reader and must stop the pipeline.
         run: mise run links
+
+      - name: Report unreachable external links
+        # Never blocking. An external site can be down, rate-limit CI runners,
+        # or block their address ranges, none of which says anything about this
+        # repository -- the first release failed on the theme's own footer link
+        # being unreachable from a runner while serving 200 everywhere else.
+        if: always()
+        run: |
+          {
+            echo "## External links"
+            echo
+            echo '```'
+            mise run links:external 2>&1 | tail -40
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:
