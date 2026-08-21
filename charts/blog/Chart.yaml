@@ -5,8 +5,8 @@ description: Static blog served by Caddy, built with Hugo
 type: application
 # Both fields are rewritten together by .github/workflows/release.yml so that a
 # chart version always identifies exactly one image build.
-version: 0.1.1
-appVersion: "0.1.1"
+version: 0.1.2
+appVersion: "0.1.2"
 home: https://blog.brokenbymega.ovh
 sources:
   - https://github.com/Wihrt/blog
