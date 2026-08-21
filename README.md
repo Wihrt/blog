@@ -68,8 +68,12 @@ two cannot drift.
 ## Writing a post
 
 `mise run new my-post` creates a file from `archetypes/posts.md`. The front
-matter contract is `schemas/post.schema.json`, and `content/posts/hello-world.md`
-is a working reference.
+matter contract is `schemas/post.schema.json`, and
+`content/posts/renovate-automatiser-dependances.md` is a working reference.
+
+Posts are written in French, and every post belongs to one of two series:
+`Veille techno` for reading notes on a tool or an article, `Blog technique` for
+longer pieces about something actually built and run.
 
 The rules that trip people up:
 
