@@ -6,7 +6,7 @@ locale = "fr-FR"
 # fois le site passé en français, cette langue devenait une seconde langue et
 # Hugo publiait un site anglais vide sous /en/, référencé dans le sitemap.
 disableLanguages = ["en"]
-title = "Wihrt's Blog"
+title = "Broken By Mega's Blog"
 timeZone = "Europe/Paris"
 
 enableRobotsTXT = true
