@@ -1,26 +1,23 @@
 ---
 # -- Number of replicas. Two by default so a node drain never takes the blog down.
 replicaCount: 2
-
 image:
   # -- Image repository.
   repository: ghcr.io/wihrt/blog
   # -- Image tag. Rewritten by the release workflow; defaults to `.Chart.AppVersion`.
-  tag: ""
+  tag: "0.1.1"
   # -- Image digest (`sha256:...`). When set it is appended to the tag, which
   # pins the deployment to one immutable build even though the homelab repo only
   # ever tracks a chart version. Rewritten by the release workflow.
-  digest: ""
+  digest: "sha256:963d1cf12001a0a1527deb5ce1538b081b38e0fd77299a17a9804c30deb06d55"
   # -- Image pull policy.
   pullPolicy: IfNotPresent
-
 # -- Image pull secrets.
 imagePullSecrets: []
 # -- Override the chart name portion of resource names.
 nameOverride: ""
 # -- Override the full generated resource name.
 fullnameOverride: "blog"
-
 serviceAccount:
   # -- Create a dedicated ServiceAccount.
   create: true
@@ -30,12 +27,10 @@ serviceAccount:
   name: ""
   # -- The blog never talks to the API server, so it needs no token.
   automountServiceAccountToken: false
-
 # -- Extra annotations for the pod.
 podAnnotations: {}
 # -- Extra labels for the pod.
 podLabels: {}
-
 # -- Pod-level security context. Matches the image: it runs as uid/gid 1000 and
 # the Caddy binary has its file capabilities stripped at build time.
 podSecurityContext:
@@ -45,7 +40,6 @@ podSecurityContext:
   fsGroup: 1000
   seccompProfile:
     type: RuntimeDefault
-
 # -- Container-level security context.
 securityContext:
   allowPrivilegeEscalation: false
@@ -54,7 +48,6 @@ securityContext:
   capabilities:
     drop:
       - ALL
-
 service:
   # -- Service type.
   type: ClusterIP
@@ -62,10 +55,8 @@ service:
   port: 8080
   # -- Extra annotations for the Service.
   annotations: {}
-
 # -- Container port. Must match the `:8080` site block in the image's Caddyfile.
 containerPort: 8080
-
 ingress:
   # -- Create an Ingress.
   enabled: true
@@ -84,7 +75,6 @@ ingress:
     - secretName: blog-tls
       hosts:
         - blog.brokenbymega.ovh
-
 # -- Resource requests and limits. A static file server needs very little; no
 # CPU limit on purpose, so a traffic spike is not throttled.
 resources:
@@ -93,7 +83,6 @@ resources:
     memory: 32Mi
   limits:
     memory: 64Mi
-
 # -- Liveness probe. Targets the dedicated `/healthz` endpoint in the Caddyfile.
 livenessProbe:
   httpGet:
@@ -103,7 +92,6 @@ livenessProbe:
   periodSeconds: 20
   timeoutSeconds: 2
   failureThreshold: 3
-
 # -- Readiness probe.
 readinessProbe:
   httpGet:
@@ -113,7 +101,6 @@ readinessProbe:
   periodSeconds: 10
   timeoutSeconds: 2
   failureThreshold: 3
-
 # -- Startup probe.
 startupProbe:
   httpGet:
@@ -121,13 +108,11 @@ startupProbe:
     port: http
   periodSeconds: 2
   failureThreshold: 15
-
 podDisruptionBudget:
   # -- Create a PodDisruptionBudget. Ignored when `replicaCount` is below 2.
   enabled: true
   # -- Minimum available pods during a voluntary disruption.
   minAvailable: 1
-
 autoscaling:
   # -- Create a HorizontalPodAutoscaler.
   enabled: false
@@ -137,7 +122,6 @@ autoscaling:
   maxReplicas: 4
   # -- Target average CPU utilisation.
   targetCPUUtilizationPercentage: 80
-
 gatus:
   # -- Create a GatusEndpoint for external uptime monitoring.
   enabled: true
@@ -149,7 +133,6 @@ gatus:
   conditions:
     - "[STATUS] == 200"
     - "[RESPONSE_TIME] < 400"
-
 # -- Topology spread constraints. Defaults to spreading replicas across nodes.
 topologySpreadConstraints:
   - maxSkew: 1
@@ -157,14 +140,12 @@ topologySpreadConstraints:
     whenUnsatisfiable: ScheduleAnyway
     labelSelector:
       matchLabels: {}
-
 # -- Node selector.
 nodeSelector: {}
 # -- Tolerations.
 tolerations: []
 # -- Affinity rules.
 affinity: {}
-
 # -- Extra volumes. `/tmp` is always mounted because the root filesystem is
 # read-only and Caddy needs a writable XDG directory.
 extraVolumes: []
