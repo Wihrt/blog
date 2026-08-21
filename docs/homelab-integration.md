@@ -74,22 +74,39 @@ In `renovate.json`, alongside the existing per-app groups:
 }
 ```
 
-Renovate is the fallback here, not the primary path: releases are pushed by
-`bump-homelab.yml` within seconds. Renovate only catches a release whose bump
-pull request failed to open.
+Renovate is the fallback here, not the primary path: `bump-homelab.yml` commits
+the new version within seconds of the release. Renovate only catches a release
+whose bump never landed -- because the push kept losing a race, or the App token
+could not be minted.
 
 ## 4. Grant the pipeline access
 
-`bump-homelab.yml` authenticates as a GitHub App rather than with a personal
-token, so the permission is scoped to one repository and the credential is
-short-lived.
+The workflow needs to push to a *different* repository. The built-in
+`GITHUB_TOKEN` is scoped to the repository that runs the workflow, so it cannot
+do this regardless of the permissions declared -- a separate credential is
+required.
 
-1. Create a GitHub App under your account.
-2. Permissions: **Contents: Read and write**, **Pull requests: Read and write**.
-3. Install it on `Wihrt/homelab` only.
-4. Store the App ID as the `HOMELAB_APP_ID` secret and the private key as
-   `HOMELAB_APP_PRIVATE_KEY`, both in the **blog** repository.
-5. Enable "Allow auto-merge" in the homelab repository settings.
+Since the bump is a plain commit, nothing calls the GitHub API. Clone, fetch
+and push are the whole requirement.
+
+1. Go to **Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens → Generate new token**.
+2. Repository access: **Only select repositories** → `Wihrt/homelab`.
+3. Repository permissions: **Contents: Read and write**. Nothing else.
+4. Store it in the **blog** repository:
+
+   ```bash
+   gh secret set HOMELAB_TOKEN
+   ```
+
+`main` in the homelab repository must accept a push from that token. If you
+protect the branch later, exempt it or switch this workflow back to a pull
+request.
+
+**A fine-grained token expires** -- a year at most. When it does, releases will
+publish their image and chart and then fail at this last step, with a clear
+error rather than a silent no-op. Put a reminder in the calendar, or move to a
+deploy key or GitHub App, neither of which expires.
 
 ## What a release does to this repository
 
@@ -99,9 +116,19 @@ short-lived.
 .applications.blog.helm.chart.version = "<new version>"
 ```
 
-then opens `chore/blog-<version>` and enables auto-merge. The homelab
-repository's own checks still gate it. If the `blog` entry is missing, the
-workflow fails with a message pointing back here rather than inventing one.
+and commits it directly to `main`, so ArgoCD sees the new version within
+seconds of the release. If the push is rejected because someone else pushed
+first, it rebases and retries up to five times rather than failing a release
+whose artifacts are already published.
+
+If the `blog` entry is missing, the workflow fails with a message pointing back
+here rather than inventing one.
+
+The trade-off of committing directly is that the homelab repository's own
+checks never run on the bump. Only one line changes and this repository's
+pipeline has already linted, templated, unit-tested and kubeconform-validated
+the chart it points at, but it is a real gap: a broken chart version reaches
+the cluster without a second opinion.
 
 ## Verifying a deployment
 
