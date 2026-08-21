@@ -44,7 +44,8 @@ mise run bootstrap
 | `mise run new my-slug` | Scaffold `content/posts/my-slug.md` from the archetype |
 | `mise run build` | Production build into `public/`; warnings are fatal |
 | `mise run validate` | Check every post against `schemas/post.schema.json` |
-| `mise run links` | Link-check the built site |
+| `mise run links` | Check internal links; fails on a broken one |
+| `mise run links:external` | Report unreachable external links; never fails |
 | `mise run lint` | Every pre-commit hook over the whole repo |
 | `mise run helm:test` | Chart unit tests |
 | `mise run release:next` | Version the next release would produce (no action taken) |

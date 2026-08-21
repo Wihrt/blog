@@ -58,12 +58,18 @@ description = "Validate every post's front matter against schemas/post.schema.js
 run = "uv run --quiet scripts/validate_content.py"
 
 [tasks.links]
-description = "Check every internal link in the built site (run build first)"
-# --root-dir resolves site-absolute links such as /tags/ against public/ on
-# disk. It must be absolute, so it cannot live in the committed lychee.toml.
-# Without it lychee cannot even build a request for them and reports a warning,
-# which would make this check silently pass on a broken link.
-run = "lychee --config lychee.toml --root-dir \"{{config_root}}/public\" --no-progress public"
+description = "Check internal links in the built site; fails on a broken one (run build first)"
+# --offline restricts the check to targets on disk, so it is deterministic and
+# needs no network: an external site being unreachable can never fail a release.
+# --root-dir resolves site-absolute links such as /tags/ against public/. It
+# must be absolute, so it cannot live in the committed lychee.toml; without it
+# lychee cannot even build a request for them and this check would silently
+# pass on a broken link.
+run = "lychee --offline --config lychee.toml --root-dir \"{{config_root}}/public\" --no-progress public"
+
+[tasks."links:external"]
+description = "Report unreachable external links; never fails (run build first)"
+run = "lychee --config lychee.toml --root-dir \"{{config_root}}/public\" --no-progress public || true"
 
 [tasks.lint]
 description = "Run every pre-commit hook against the whole repo"
