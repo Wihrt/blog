@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.1.2 - 2026-08-21
+#### Bug Fixes
+- (**release**) lowercase the GHCR paths, drop the shadowing IMAGE (#20) - (afbe91f) - *Wihrt*, *Claude Opus 5 (1M context)*, *Claude Opus 5 (1M context)*, *Wihrt*, *Claude Opus 5 (1M context)*
+#### Miscellaneous Chores
+- (**chart**) pin blog 0.1.1 [skip ci] - (2138aea) - github-actions[bot]
+
+- - -
+
 ## v0.1.1 - 2026-08-21
 #### Bug Fixes
 - (**ci**) stop external links from failing the build (#19) - (a46268e) - *Wihrt*, *Wihrt*, *Claude Opus 5 (1M context)*
