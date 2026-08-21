@@ -28,21 +28,6 @@ tests:
       - hasDocuments:
           count: 0
 
-  - it: denies all egress and admits only the ingress controller and the node
-    template: networkpolicy.yaml
-    asserts:
-      - equal:
-          path: spec.egress
-          value: []
-      - equal:
-          path: spec.ingress[0].fromEndpoints[0].matchLabels["k8s:io.kubernetes.pod.namespace"]
-          value: kube-system
-      - equal:
-          path: spec.ingress[1].fromEntities
-          value:
-            - host
-            - remote-node
-
   - it: derives the gatus check from the ingress host
     template: gatus.yaml
     asserts:

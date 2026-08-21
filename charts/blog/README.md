@@ -49,9 +49,6 @@ Static blog served by Caddy, built with Hugo
 | ingress.tls[0].secretName | string | `"blog-tls"` |  |
 | livenessProbe | object | `{"failureThreshold":3,"httpGet":{"path":"/healthz","port":"http"},"initialDelaySeconds":3,"periodSeconds":20,"timeoutSeconds":2}` | Liveness probe. Targets the dedicated `/healthz` endpoint in the Caddyfile. |
 | nameOverride | string | `""` | Override the chart name portion of resource names. |
-| networkPolicy.enabled | bool | `true` | Create a CiliumNetworkPolicy. |
-| networkPolicy.ingressControllerLabels | object | `{"app.kubernetes.io/name":"traefik"}` | Pod labels identifying the ingress controller. |
-| networkPolicy.ingressControllerNamespace | string | `"kube-system"` | Namespace the ingress controller runs in. |
 | nodeSelector | object | `{}` | Node selector. |
 | podAnnotations | object | `{}` | Extra annotations for the pod. |
 | podDisruptionBudget.enabled | bool | `true` | Create a PodDisruptionBudget. Ignored when `replicaCount` is below 2. |

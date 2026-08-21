@@ -32,8 +32,9 @@ In `kubernetes/bootstrap/argocd/homelab.yaml`, under `applications:`:
         # renovate: datasource=docker depName=ghcr.io/wihrt/charts/blog
         repoURL: ghcr.io/wihrt/charts
         version: "0.1.0"
-    # The chart already ships the Ingress, the CiliumNetworkPolicy and the
-    # GatusEndpoint, so there is nothing to add under static/.
+    # The chart ships the Ingress and the GatusEndpoint. Set this to true and
+    # add kubernetes/argocd/applications/blog/static/network-policy.yaml if you
+    # want a CiliumNetworkPolicy, which is where the other apps keep theirs.
     static:
       enabled: false
 ```

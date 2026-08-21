@@ -379,46 +379,6 @@
       "title": "nameOverride",
       "type": "string"
     },
-    "networkPolicy": {
-      "additionalProperties": false,
-      "properties": {
-        "enabled": {
-          "default": true,
-          "description": "Create a CiliumNetworkPolicy.",
-          "title": "enabled",
-          "type": "boolean"
-        },
-        "ingressControllerLabels": {
-          "additionalProperties": false,
-          "description": "Pod labels identifying the ingress controller.",
-          "properties": {
-            "app.kubernetes.io/name": {
-              "default": "traefik",
-              "title": "app.kubernetes.io/name",
-              "type": "string"
-            }
-          },
-          "required": [
-            "app.kubernetes.io/name"
-          ],
-          "title": "ingressControllerLabels",
-          "type": "object"
-        },
-        "ingressControllerNamespace": {
-          "default": "kube-system",
-          "description": "Namespace the ingress controller runs in.",
-          "title": "ingressControllerNamespace",
-          "type": "string"
-        }
-      },
-      "required": [
-        "enabled",
-        "ingressControllerNamespace",
-        "ingressControllerLabels"
-      ],
-      "title": "networkPolicy",
-      "type": "object"
-    },
     "nodeSelector": {
       "additionalProperties": false,
       "description": "Node selector.",
@@ -869,7 +829,6 @@
     "startupProbe",
     "podDisruptionBudget",
     "autoscaling",
-    "networkPolicy",
     "gatus",
     "topologySpreadConstraints",
     "nodeSelector",

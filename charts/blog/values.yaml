@@ -138,15 +138,6 @@ autoscaling:
   # -- Target average CPU utilisation.
   targetCPUUtilizationPercentage: 80
 
-networkPolicy:
-  # -- Create a CiliumNetworkPolicy.
-  enabled: true
-  # -- Namespace the ingress controller runs in.
-  ingressControllerNamespace: kube-system
-  # -- Pod labels identifying the ingress controller.
-  ingressControllerLabels:
-    app.kubernetes.io/name: traefik
-
 gatus:
   # -- Create a GatusEndpoint for external uptime monitoring.
   enabled: true
