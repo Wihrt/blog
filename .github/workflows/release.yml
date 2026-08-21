@@ -175,7 +175,7 @@ jobs:
 
       - name: Verify the pinned chart still renders
         run: |
-          helm plugin install https://github.com/helm-unittest/helm-unittest
+          helm plugin install https://github.com/helm-unittest/helm-unittest --version 1.1.2 --verify=false
           mise run helm:lint
           mise run helm:test
           mise run helm:verify

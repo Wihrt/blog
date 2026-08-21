@@ -33,8 +33,12 @@ jobs:
 
       - name: Install Helm plugins
         run: |
-          helm plugin install https://github.com/helm-unittest/helm-unittest
-          helm plugin install https://github.com/dadav/helm-schema
+          # Helm 4 refuses plugin sources without provenance unless verification
+          # is waived, and neither plugin publishes signatures. Versions are
+          # pinned so a plugin release cannot change chart rendering or test
+          # results without a commit here.
+          helm plugin install https://github.com/helm-unittest/helm-unittest --version 1.1.2 --verify=false
+          helm plugin install https://github.com/dadav/helm-schema --version 0.23.4 --verify=false
 
       - name: Run every pre-commit hook
         run: pre-commit run --all-files --show-diff-on-failure
@@ -121,7 +125,12 @@ jobs:
           cache: true
 
       - name: Install Helm plugins
-        run: helm plugin install https://github.com/helm-unittest/helm-unittest
+        run: |
+          # Helm 4 refuses plugin sources without provenance unless verification
+          # is waived, and neither plugin publishes signatures. Versions are
+          # pinned so a plugin release cannot change chart rendering or test
+          # results without a commit here.
+          helm plugin install https://github.com/helm-unittest/helm-unittest --version 1.1.2 --verify=false
 
       - run: mise run helm:lint
       - run: mise run helm:test

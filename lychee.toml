@@ -14,7 +14,10 @@ retry_wait_time = 2
 max_retries = 2
 
 include_verbatim = false
-include_fragments = true
+# lychee 0.24 replaced the boolean with a mode. "anchor-only" checks #section
+# links, which is what the theme's table of contents emits; text fragments
+# (#:~:text=) appear nowhere here and resolving them is pure cost.
+include_fragments = "anchor-only"
 
 # Presented as a real browser: several sites 403 anything that is not.
 user_agent = "Mozilla/5.0 (compatible; lychee/0.20; +https://blog.brokenbymega.ovh)"
