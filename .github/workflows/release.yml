@@ -93,7 +93,15 @@ jobs:
 
       - name: Push the tag and changelog
         if: steps.bump.outputs.bumped == 'true'
-        run: git push --follow-tags origin HEAD:main
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          # cog creates lightweight tags and --follow-tags pushes annotated ones
+          # only, so the tag silently stayed local. With no tag on the remote,
+          # every later run recomputes the same first version and releases never
+          # advance. Push the tag explicitly.
+          git push origin HEAD:main
+          git push origin "refs/tags/v${VERSION}"
 
   publish:
     name: Publish image and chart

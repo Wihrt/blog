@@ -31,6 +31,31 @@ jobs:
         with:
           cache: true
 
+      - name: Cache pre-commit environments
+        # Measured: creating these environments took 64s of this job's 93s,
+        # while running the hooks took seconds. The key covers both the hook
+        # definitions and mise.toml, which pins the pre-commit version itself;
+        # restore-keys give a partial hit so that changing one hook rebuilds
+        # only that hook's environment.
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.pre-commit-config.yaml', 'mise.toml') }}
+          restore-keys: |
+            pre-commit-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Cache Hugo modules
+        # The theme is a Go module fetched on every build. go.sum pins it
+        # exactly, so the key is exact too.
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/hugo_cache
+            ~/go/pkg/mod
+          key: hugo-mod-${{ runner.os }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            hugo-mod-${{ runner.os }}-
+
       - name: Install Helm plugins
         run: |
           # Helm 4 refuses plugin sources without provenance unless verification
@@ -103,6 +128,18 @@ jobs:
       - uses: jdx/mise-action@v3
         with:
           cache: true
+
+      - name: Cache Hugo modules
+        # The theme is a Go module fetched on every build. go.sum pins it
+        # exactly, so the key is exact too.
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/hugo_cache
+            ~/go/pkg/mod
+          key: hugo-mod-${{ runner.os }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            hugo-mod-${{ runner.os }}-
 
       - name: Validate post front matter
         run: mise run validate

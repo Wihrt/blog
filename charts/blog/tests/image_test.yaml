@@ -6,6 +6,15 @@ tests:
   - it: falls back to the chart appVersion when no tag is set
     chart:
       appVersion: 9.9.9
+    set:
+      # Both set explicitly rather than relying on the shipped defaults.
+      # release.yml writes a tag and a digest into values.yaml before running
+      # these tests, so a test that assumes those defaults are empty passes in
+      # development and fails during the release -- which is exactly what
+      # happened on the first one.
+      image:
+        tag: ""
+        digest: ""
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
@@ -26,6 +35,7 @@ tests:
     set:
       image:
         tag: "1.2.3"
+        digest: ""
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
