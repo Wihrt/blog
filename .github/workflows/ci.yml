@@ -39,6 +39,42 @@ jobs:
       - name: Run every pre-commit hook
         run: pre-commit run --all-files --show-diff-on-failure
 
+      - name: Exercise the release tooling
+        # release.yml never runs on a pull request, so nothing here used to
+        # prove cog was even installed -- a missing mise.toml entry shipped
+        # unnoticed and would have failed only at release time. `cog bump`
+        # itself cannot be rehearsed: branch_whitelist refuses any branch but
+        # main, dry-run included.
+        run: |
+          cog --version
+          # --from-latest-tag exits non-zero when no tag exists at all, which is
+          # the state before the first release; and without it cog would scan
+          # back into the two non-conventional commits from the Astro scaffold.
+          # So check only once there is a tag to check from.
+          if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+            cog check --from-latest-tag --ignore-merge-commits
+          else
+            echo "::notice::No release tag yet; commit-message check starts after the first release."
+          fi
+
+      - name: Exercise the commit-message hook
+        # `pre-commit run --all-files` skips commit-msg stage hooks, so this
+        # one was never covered either. Assert it both accepts and rejects.
+        run: |
+          printf 'feat(content): a conventional message\n' > /tmp/ok.txt
+          printf 'not a conventional message\n' > /tmp/bad.txt
+          if ! pre-commit run --hook-stage commit-msg conventional-commit \
+               --commit-msg-filename /tmp/ok.txt; then
+            echo "::error::The commit-message hook rejected a valid message."
+            exit 1
+          fi
+          if pre-commit run --hook-stage commit-msg conventional-commit \
+             --commit-msg-filename /tmp/bad.txt; then
+            echo "::error::The commit-message hook accepted an invalid message."
+            exit 1
+          fi
+          echo "Commit-message hook accepts valid and rejects invalid messages."
+
       - name: Fail if a generated file is stale
         run: |
           if ! git diff --quiet; then

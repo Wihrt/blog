@@ -36,6 +36,10 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      # cog writes a changelog commit and a tag, and this job pushes both.
+      # The workflow default is contents: read, which would fail the push.
+      contents: write
     outputs:
       version: ${{ steps.bump.outputs.version }}
       bumped: ${{ steps.bump.outputs.bumped }}

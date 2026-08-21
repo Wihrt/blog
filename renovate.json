@@ -50,6 +50,25 @@
       "enabled": false
     },
     {
+      "description": "Tool and dependency updates carry no production risk: a bad version fails CI, and CI gates the merge",
+      "matchManagers": [
+        "mise",
+        "gomod",
+        "github-actions",
+        "dockerfile",
+        "pre-commit"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest",
+        "pin"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
       "description": "Major bumps change behaviour by definition; a green pipeline is not enough evidence",
       "matchUpdateTypes": [
         "major"
