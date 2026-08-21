@@ -10,31 +10,6 @@
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
   "commitMessagePrefix": "chore(deps):",
-  "customManagers": [
-    {
-      "description": "Tool versions in mise.toml, pinned under a renovate comment (same convention as the homelab repo)",
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^mise\\.toml$/"
-      ],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\s+\\S+\\s*=\\s*\"(?<currentValue>[^\"]+)\""
-      ],
-      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver-coerced{{/if}}"
-    },
-    {
-      "description": "Hugo module path pinned in hugo.toml",
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^hugo\\.toml$/"
-      ],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+path = \"(?<packageName>[^\"]+)\""
-      ],
-      "currentValueTemplate": "main",
-      "datasourceTemplate": "go"
-    }
-  ],
   "packageRules": [
     {
       "description": "Hugo binary and the Hugo builder image must move together, or a local build and the container build diverge",
@@ -73,6 +48,35 @@
         "ghcr.io/wihrt/charts/blog"
       ],
       "enabled": false
+    },
+    {
+      "description": "Tool and dependency updates carry no production risk: a bad version fails CI, and CI gates the merge",
+      "matchManagers": [
+        "mise",
+        "gomod",
+        "github-actions",
+        "dockerfile",
+        "pre-commit"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest",
+        "pin"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Major bumps change behaviour by definition; a green pipeline is not enough evidence",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "needs-review"
+      ]
     }
   ]
 }

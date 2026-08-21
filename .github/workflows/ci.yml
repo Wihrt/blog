@@ -33,11 +33,57 @@ jobs:
 
       - name: Install Helm plugins
         run: |
-          helm plugin install https://github.com/helm-unittest/helm-unittest
-          helm plugin install https://github.com/dadav/helm-schema
+          # Helm 4 refuses plugin sources without provenance unless verification
+          # is waived, and neither plugin publishes signatures. Versions are
+          # pinned so a plugin release cannot change chart rendering or test
+          # results without a commit here.
+          helm plugin install https://github.com/helm-unittest/helm-unittest --version 1.1.2 --verify=false
+          helm plugin install https://github.com/dadav/helm-schema --version 0.23.4 --verify=false
 
       - name: Run every pre-commit hook
         run: pre-commit run --all-files --show-diff-on-failure
+
+      - name: Exercise the release tooling
+        # release.yml never runs on a pull request, so nothing here used to
+        # prove cog was even installed -- a missing mise.toml entry shipped
+        # unnoticed and would have failed only at release time. `cog bump`
+        # itself cannot be rehearsed: branch_whitelist refuses any branch but
+        # main, dry-run included.
+        run: |
+          cog --version
+          # --from-latest-tag exits non-zero when no tag exists at all, which is
+          # the state before the first release; and without it cog would scan
+          # back into the two non-conventional commits from the Astro scaffold.
+          # So check only once there is a tag to check from.
+          if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+            cog check --from-latest-tag --ignore-merge-commits
+          else
+            echo "::notice::No release tag yet; commit-message check starts after the first release."
+          fi
+
+      - name: Exercise the commit-message hook
+        # `pre-commit run --all-files` skips commit-msg stage hooks, so this
+        # one was never covered either. Assert it both accepts and rejects.
+        run: |
+          # cog verify builds a commit object to validate against, so it needs a
+          # committer identity and panics without one. A real commit always has
+          # it -- git refuses to commit otherwise -- but a CI runner does not.
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          printf 'feat(content): a conventional message\n' > /tmp/ok.txt
+          printf 'not a conventional message\n' > /tmp/bad.txt
+          if ! pre-commit run --hook-stage commit-msg conventional-commit \
+               --commit-msg-filename /tmp/ok.txt; then
+            echo "::error::The commit-message hook rejected a valid message."
+            exit 1
+          fi
+          if pre-commit run --hook-stage commit-msg conventional-commit \
+             --commit-msg-filename /tmp/bad.txt; then
+            echo "::error::The commit-message hook accepted an invalid message."
+            exit 1
+          fi
+          echo "Commit-message hook accepts valid and rejects invalid messages."
 
       - name: Fail if a generated file is stale
         run: |
@@ -85,7 +131,12 @@ jobs:
           cache: true
 
       - name: Install Helm plugins
-        run: helm plugin install https://github.com/helm-unittest/helm-unittest
+        run: |
+          # Helm 4 refuses plugin sources without provenance unless verification
+          # is waived, and neither plugin publishes signatures. Versions are
+          # pinned so a plugin release cannot change chart rendering or test
+          # results without a commit here.
+          helm plugin install https://github.com/helm-unittest/helm-unittest --version 1.1.2 --verify=false
 
       - run: mise run helm:lint
       - run: mise run helm:test

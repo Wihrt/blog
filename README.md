@@ -47,6 +47,7 @@ mise run bootstrap
 | `mise run links` | Link-check the built site |
 | `mise run lint` | Every pre-commit hook over the whole repo |
 | `mise run helm:test` | Chart unit tests |
+| `mise run release:next` | Version the next release would produce (no action taken) |
 | `mise run docker:up` | Serve the container on :8080, rebuilding on every change |
 | `mise run docker:preview` / `docker:down` | Serve it in the background, then stop it |
 | `mise run ci` | The full pipeline, in the order CI runs it |

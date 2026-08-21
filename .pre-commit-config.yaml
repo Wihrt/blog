@@ -48,16 +48,18 @@ repos:
     hooks:
       - id: markdownlint-cli2
 
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.10.0
-    hooks:
-      # release.yml derives the semver bump from commit messages, so a
-      # non-conventional message silently breaks versioning.
-      - id: commitizen
-        stages: [commit-msg]
-
   - repo: local
     hooks:
+      - id: conventional-commit
+        name: Check the commit message against the conventional commit spec
+        # release.yml derives the version from these messages, so a
+        # non-conventional one silently breaks versioning. Same binary and same
+        # rules the release uses, so local and CI cannot disagree.
+        language: system
+        entry: mise
+        args: ["exec", "--", "cog", "verify", "--ignore-merge-commits", "--file"]
+        stages: [commit-msg]
+
       - id: hadolint
         name: Lint the Dockerfile
         language: system

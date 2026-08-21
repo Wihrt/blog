@@ -38,9 +38,12 @@ jobs:
             exit 0
           fi
           labels="$(gh pr view "$number" --repo "$REPO" --json labels --jq '[.labels[].name] | join(",")')"
+          # Only content pull requests. Renovate enables its own auto-merge
+          # through platformAutomerge, and two mechanisms racing on the same
+          # pull request produce confusing, hard-to-reproduce merges.
           case ",$labels," in
-            *,automated,*) echo "found=true" >> "$GITHUB_OUTPUT" ;;
-            *) echo "Pull request #$number is not automated; leaving it to a human."
+            *,content,*) echo "found=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Pull request #$number is not a content pull request; leaving it alone."
                echo "found=false" >> "$GITHUB_OUTPUT" ;;
           esac
           echo "number=$number" >> "$GITHUB_OUTPUT"
