@@ -1,0 +1,29 @@
+# Conventional commits and versioning.
+#
+# The git tag is the only record of the version. cog derives the next one from
+# the commit messages since the last tag; release.yml then rewrites
+# charts/blog/Chart.yaml from it. Nothing else in the repository stores a
+# version number, so nothing else can disagree with the tag.
+
+tag_prefix = "v"
+ignore_merge_commits = true
+
+# `cog check` only looks at commits since the last release, which keeps the two
+# non-conventional commits from the original Astro scaffold permanently out of
+# scope once the first tag exists.
+from_latest_tag = true
+
+# Appended to the bump commit so pushing it does not re-trigger the release
+# workflow. Passed explicitly as `cog bump --skip-ci`.
+skip_ci = "[skip ci]"
+
+branch_whitelist = ["main"]
+
+[changelog]
+path = "CHANGELOG.md"
+remote = "github.com"
+repository = "blog"
+owner = "Wihrt"
+authors = [
+  { signature = "Arnaud Hatzenbuhler", username = "Wihrt" },
+]

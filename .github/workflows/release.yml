@@ -49,27 +49,43 @@ jobs:
         with:
           cache: true
 
+      - name: Configure the committer
+        # cog writes a changelog commit and a tag. Without an identity it fails
+        # at the commit step, which is exactly how the first release run
+        # produced a green pipeline that published nothing.
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
       - name: Derive the next version from the commit history
         id: bump
         env:
           FORCE: ${{ inputs.force }}
         run: |
-          uv tool install commitizen
-          if cz bump --yes --changelog --git-output-to-stderr; then
-            version="$(cz version --project)"
+          before="$(cog get-version 2>/dev/null || true)"
+
+          # Deliberately not guarded. cog exits 0 when no commit warrants a
+          # release and non-zero only when it genuinely fails, so the step must
+          # be allowed to fail rather than mistake a crash for "nothing to do".
+          # --skip-ci keeps the bump commit from re-triggering this workflow.
+          cog bump --auto --skip-ci
+
+          after="$(cog get-version 2>/dev/null || true)"
+
+          if [ -n "$after" ] && [ "$after" != "$before" ]; then
+            echo "version=$after" >> "$GITHUB_OUTPUT"
             echo "bumped=true" >> "$GITHUB_OUTPUT"
-          elif [ "$FORCE" = "true" ]; then
-            version="$(cz version --project)"
-            echo "No bump warranted; republishing $version on request."
+            echo "Releasing $after (previous: ${before:-none})." | tee -a "$GITHUB_STEP_SUMMARY"
+          elif [ "$FORCE" = "true" ] && [ -n "$after" ]; then
+            echo "version=$after" >> "$GITHUB_OUTPUT"
             echo "bumped=false" >> "$GITHUB_OUTPUT"
+            echo "Republishing $after on request." | tee -a "$GITHUB_STEP_SUMMARY"
           else
-            echo "No commit warrants a release."
-            echo "bumped=false" >> "$GITHUB_OUTPUT"
             echo "version=" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+            echo "No commit since ${before:-the first commit} warrants a release; nothing was published." \
+              | tee -a "$GITHUB_STEP_SUMMARY"
           fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Releasing $version"
 
       - name: Push the tag and changelog
         if: steps.bump.outputs.bumped == 'true'
@@ -194,7 +210,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          # The tag was created by `cz bump` in the previous job.
+          # The tag was created by `cog bump` in the previous job.
           gh release view "v${VERSION}" >/dev/null 2>&1 && exit 0
           cat > /tmp/notes.md <<NOTES
           Image: \`${IMAGE}:${VERSION}@${DIGEST}\`

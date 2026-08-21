@@ -1,10 +1,16 @@
 ---
 name: Guard
 
-# The gate that makes unattended merging safe. An automated author may add
-# articles; it may not change how the site is built, packaged or deployed. If
-# this check is not green, branch protection blocks the merge, so the guard
-# fails closed.
+# Confines each automated author to the files it has business changing.
+#
+# There are two of them and they are not the same. The content workflow adds
+# articles and must never touch the build; Renovate updates dependency
+# manifests and must never touch articles. Treating both as "not the owner" and
+# allowing only content blocked every Renovate pull request, which is what this
+# file used to do.
+#
+# Branch protection requires this check, so it fails closed: no green run, no
+# merge.
 
 on:
   pull_request_target:
@@ -33,26 +39,25 @@ jobs:
           ACTOR: ${{ github.event.pull_request.user.login }}
           ASSOCIATION: ${{ github.event.pull_request.author_association }}
         run: |
-          # Anything that is not the repository owner acting directly is held to
-          # the content-only contract. That deliberately includes bots other
-          # than the expected one.
+          # Matched as literal strings: "renovate[bot]" contains [ ] which a
+          # shell case pattern would read as a character class.
           if [ "$ASSOCIATION" = "OWNER" ]; then
-            echo "automated=false" >> "$GITHUB_OUTPUT"
+            profile=owner
+          elif [ "$ACTOR" = "renovate[bot]" ] || [ "$ACTOR" = "app/renovate" ]; then
+            profile=dependencies
           else
-            echo "automated=true" >> "$GITHUB_OUTPUT"
+            profile=content
           fi
-          echo "Author '$ACTOR' association '$ASSOCIATION'."
+          echo "profile=$profile" >> "$GITHUB_OUTPUT"
+          echo "Author '$ACTOR' (association '$ASSOCIATION') -> profile '$profile'."
 
-      - name: Check out the pull request head read-only
+      - uses: actions/checkout@v5
         # pull_request_target runs with repository secrets, so the untrusted
-        # head is only ever read as data: no checkout of its workflows, no
-        # build, no script from the branch is executed.
-        uses: actions/checkout@v5
+        # head is only ever read as data: nothing from the branch is executed.
         with:
           fetch-depth: 0
 
       - name: Collect changed paths
-        id: changed
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -61,31 +66,46 @@ jobs:
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" > /tmp/changed.txt
           echo "Changed files:"
           sed 's/^/  /' /tmp/changed.txt
-          echo "count=$(wc -l < /tmp/changed.txt)" >> "$GITHUB_OUTPUT"
 
-      - name: Enforce the content-only contract
-        if: steps.author.outputs.automated == 'true'
+      - name: Enforce the allowlist for this author
+        env:
+          PROFILE: ${{ steps.author.outputs.profile }}
         run: |
-          # Everything an article legitimately needs, and nothing that can
-          # change what runs in the cluster.
-          allowed='^(content/|assets/images/|static/images/)'
+          case "$PROFILE" in
+            owner)
+              echo "Owner pull request; no path restriction."
+              exit 0
+              ;;
+            dependencies)
+              # Everything Renovate has a manager for, and nothing else. It has
+              # no business writing articles or editing the chart's values,
+              # which the release workflow owns.
+              allowed='^(mise\.toml|go\.(mod|sum)|renovate\.json|cog\.toml|Dockerfile|compose\.yaml|\.pre-commit-config\.yaml|\.github/workflows/)'
+              why='Renovate may only update dependency manifests'
+              ;;
+            content)
+              allowed='^(content/|assets/images/|static/images/)'
+              why='an automated content pull request may only touch content'
+              ;;
+          esac
+
           violations="$(grep -Ev "$allowed" /tmp/changed.txt || true)"
           if [ -n "$violations" ]; then
-            echo "::error::An automated pull request may only touch content."
+            echo "::error::Rejected: $why."
             echo "$violations" | while read -r f; do
-              echo "::error file=$f::$f is outside content/, assets/images/ and static/images/"
+              echo "::error file=$f::$f is outside the '$PROFILE' allowlist"
             done
             exit 1
           fi
-          echo "All changed paths are content."
+          echo "All changed paths are within the '$PROFILE' allowlist."
 
       - name: Reject an automated change to the tag vocabulary
-        if: steps.author.outputs.automated == 'true'
+        if: steps.author.outputs.profile == 'content'
         run: |
-          # data/tags.yaml is deliberately excluded from the allowlist above.
+          # data/tags.yaml is deliberately outside the content allowlist above.
           # Widening the taxonomy is a human decision; without this an automated
-          # author could invent a tag and then authorise it in the same pull
-          # request, which would defeat the vocabulary check entirely.
+          # author could invent a tag and authorise it in the same pull request,
+          # which would defeat the vocabulary check entirely.
           if grep -q '^data/tags\.yaml$' /tmp/changed.txt; then
             echo "::error file=data/tags.yaml::Add new tags in a separate, human-authored pull request."
             exit 1
@@ -95,17 +115,17 @@ jobs:
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
-          # The squash commit takes the pull request title, and release.yml
-          # derives the semver bump from it. A non-conventional title would
-          # publish a build under the wrong version.
-          if ! printf '%s' "$TITLE" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .{5,}'; then
+          # The squash commit takes the pull request title, and cog derives the
+          # version from it. A non-conventional title would publish a build
+          # under the wrong version, or none at all.
+          if ! printf '%s' "$TITLE" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: .{5,}'; then
             echo "::error::Pull request title must be a conventional commit, e.g. 'feat(content): add a post about Cilium'."
             echo "Got: $TITLE"
             exit 1
           fi
 
       - name: Require exactly one post per automated pull request
-        if: steps.author.outputs.automated == 'true'
+        if: steps.author.outputs.profile == 'content'
         run: |
           # One post per pull request keeps the version history readable and
           # makes a revert a single, obvious operation.
@@ -116,8 +136,9 @@ jobs:
           fi
 
       - name: Label the pull request
-        if: steps.author.outputs.automated == 'true'
+        if: steps.author.outputs.profile != 'owner'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
-        run: gh pr edit "$PR" --add-label automated --add-label content || true
+          PROFILE: ${{ steps.author.outputs.profile }}
+        run: gh pr edit "$PR" --add-label automated --add-label "$PROFILE" || true
