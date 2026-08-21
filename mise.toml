@@ -4,7 +4,7 @@ experimental = true
 [tools]
 hugo = "0.165.0"
 go = "1.27.0"
-helm = "3.20.1"
+helm = "3.21.4"
 helm-docs = "1.14.2"
 kubeconform = "0.7.0"
 hadolint = "2.15.1"
