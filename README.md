@@ -17,7 +17,7 @@ main
   └─ Release    version from commit history
                 → multi-arch image → ghcr.io/wihrt/blog:X.Y.Z (signed, digest recorded)
                 → chart pinned to that digest → ghcr.io/wihrt/charts/blog:X.Y.Z
-                → pull request on Wihrt/homelab raising the chart version
+                → commit on Wihrt/homelab raising the chart version
         ↓
 ArgoCD syncs → Caddy pods roll → the article is live
 ```
@@ -128,10 +128,9 @@ handling at all.
 
 - Branch protection on `main` requiring the `Guard`, `Lint and validate`,
   `Build site`, `Helm chart` and `Container image` checks.
-- "Allow auto-merge" enabled on this repository and on `Wihrt/homelab`.
-- A GitHub App installed on `Wihrt/homelab` with `contents: write` and
-  `pull-requests: write`, its credentials stored here as `HOMELAB_APP_ID` and
-  `HOMELAB_APP_PRIVATE_KEY`.
+- "Allow auto-merge" enabled on this repository (content pull requests).
+- A GitHub App installed on `Wihrt/homelab` with `contents: write`, its
+  credentials stored here as `HOMELAB_APP_ID` and `HOMELAB_APP_PRIVATE_KEY`.
 - The `blog` application added once to
   `kubernetes/bootstrap/argocd/homelab.yaml` in the homelab repository; see
   `docs/homelab-integration.md`.

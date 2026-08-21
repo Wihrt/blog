@@ -85,11 +85,15 @@ token, so the permission is scoped to one repository and the credential is
 short-lived.
 
 1. Create a GitHub App under your account.
-2. Permissions: **Contents: Read and write**, **Pull requests: Read and write**.
+2. Permissions: **Contents: Read and write**. That is all it needs -- the bump
+   is committed straight to `main`, so no pull request permission is required.
 3. Install it on `Wihrt/homelab` only.
 4. Store the App ID as the `HOMELAB_APP_ID` secret and the private key as
    `HOMELAB_APP_PRIVATE_KEY`, both in the **blog** repository.
-5. Enable "Allow auto-merge" in the homelab repository settings.
+
+`main` in the homelab repository must accept a push from that App. If you
+protect the branch later, either exempt the App or switch this workflow back to
+a pull request.
 
 ## What a release does to this repository
 
@@ -99,9 +103,19 @@ short-lived.
 .applications.blog.helm.chart.version = "<new version>"
 ```
 
-then opens `chore/blog-<version>` and enables auto-merge. The homelab
-repository's own checks still gate it. If the `blog` entry is missing, the
-workflow fails with a message pointing back here rather than inventing one.
+and commits it directly to `main`, so ArgoCD sees the new version within
+seconds of the release. If the push is rejected because someone else pushed
+first, it rebases and retries up to five times rather than failing a release
+whose artifacts are already published.
+
+If the `blog` entry is missing, the workflow fails with a message pointing back
+here rather than inventing one.
+
+The trade-off of committing directly is that the homelab repository's own
+checks never run on the bump. Only one line changes and this repository's
+pipeline has already linted, templated, unit-tested and kubeconform-validated
+the chart it points at, but it is a real gap: a broken chart version reaches
+the cluster without a second opinion.
 
 ## Verifying a deployment
 

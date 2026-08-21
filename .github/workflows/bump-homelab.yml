@@ -3,8 +3,14 @@ name: Bump homelab
 
 # Closes the loop: raises the blog chart version in the GitOps repository so
 # ArgoCD picks up the release. Only the chart version moves there -- the image
-# digest lives inside the chart, which keeps this repository's convention of a
+# digest lives inside the chart, which keeps that repository's convention of a
 # single semver on the line after a `# renovate:` comment intact.
+#
+# The bump is committed straight to main rather than proposed as a pull
+# request: one line changes, and the chart it points at has already been
+# linted, templated, unit-tested and kubeconform-validated by the release that
+# produced it. The cost is that the homelab repository's own checks never see
+# the change.
 
 on:
   workflow_call:
@@ -14,7 +20,7 @@ on:
         required: true
         type: string
       digest:
-        description: Image digest, quoted in the pull request body for traceability
+        description: Image digest, quoted in the commit message for traceability
         required: false
         type: string
   workflow_dispatch:
@@ -33,7 +39,7 @@ env:
 
 jobs:
   bump:
-    name: Open the version bump pull request
+    name: Commit the version bump
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -102,50 +108,55 @@ jobs:
           echo "previous=$current" >> "$GITHUB_OUTPUT"
           git --no-pager diff -- "$HOMELAB_FILE"
 
-      - name: Open and auto-merge the pull request
+      - name: Commit the bump straight to main
         if: steps.edit.outputs.changed == 'true'
         working-directory: homelab
         env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
           VERSION: ${{ inputs.version }}
           PREVIOUS: ${{ steps.edit.outputs.previous }}
           DIGEST: ${{ inputs.digest }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          # OCI paths quoted in the body must be lowercase to be copy-pastable;
-          # github.repository keeps the account's capitalisation.
-          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
-          REPO_LC="${GITHUB_REPOSITORY,,}"
+          # OCI paths quoted in the message must be lowercase to be
+          # copy-pastable; github.repository keeps the account's capitalisation.
+          owner_lc="${GITHUB_REPOSITORY_OWNER,,}"
+          repo_lc="${GITHUB_REPOSITORY,,}"
+          image_ref="ghcr.io/${repo_lc}:${VERSION}"
+          [ -n "$DIGEST" ] && image_ref="${image_ref}@${DIGEST}"
 
-          branch="chore/blog-${VERSION}"
+          # Built with printf rather than a heredoc: a heredoc indented to match
+          # the YAML block would carry its leading spaces into the message, and
+          # its terminator cannot be indented at all.
+          printf '%s\n\n%s\n\n%s\n%s\n\n%s\n%s\n\n%s\n' \
+            "chore(blog): bump chart to ${VERSION}" \
+            "Rolls the blog out to ${VERSION} (was ${PREVIOUS})." \
+            "Chart: oci://ghcr.io/${owner_lc}/charts/blog:${VERSION}" \
+            "Image: ${image_ref}" \
+            "The chart pins the image by digest internally, so this single" \
+            "version change resolves one immutable build." \
+            "Pushed by ${RUN_URL}" > /tmp/commit-msg.txt
+
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -b "$branch"
           git add "$HOMELAB_FILE"
-          git commit -m "chore(blog): bump chart to ${VERSION}"
-          git push --force-with-lease origin "$branch"
+          git commit -F /tmp/commit-msg.txt
 
-          body="$(cat <<BODY
-          Rolls the blog out to \`${VERSION}\` (was \`${PREVIOUS}\`).
+          # Renovate or a person may have pushed between the checkout and now.
+          # Rebase and retry rather than fail a release whose artifacts are
+          # already published and immutable.
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              echo "Pushed to $HOMELAB_REPO on attempt $attempt."
+              exit 0
+            fi
+            echo "::notice::Push rejected (attempt $attempt); rebasing onto the current main."
+            git fetch origin main
+            if ! git rebase origin/main; then
+              echo "::error::Rebase failed; the blog entry may have been edited concurrently."
+              exit 1
+            fi
+            sleep $(( attempt * 3 ))
+          done
 
-          - Chart: \`oci://ghcr.io/${OWNER_LC}/charts/blog:${VERSION}\`
-          - Image: \`ghcr.io/${REPO_LC}:${VERSION}${DIGEST:+@${DIGEST}}\`
-
-          The chart pins the image by digest internally, so this single version
-          change is enough to resolve one immutable build.
-
-          Published by [${{ github.workflow }}](${RUN_URL}).
-          BODY
-          )"
-
-          url="$(gh pr create \
-            --title "chore(blog): bump chart to ${VERSION}" \
-            --body "$body" \
-            --base main \
-            --head "$branch" \
-            --label automated 2>/dev/null || gh pr view "$branch" --json url --jq .url)"
-          echo "Pull request: $url"
-
-          # Auto-merge still waits on the homelab repository's own checks.
-          gh pr merge "$branch" --auto --squash --delete-branch \
-            || echo "::warning::Could not enable auto-merge; merge $url by hand."
+          echo "::error::Could not push to $HOMELAB_REPO after 5 attempts."
+          exit 1
