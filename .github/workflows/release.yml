@@ -15,8 +15,8 @@ permissions:
   contents: read
 
 concurrency:
-  # Never let two releases race: they would both bump the chart and open
-  # conflicting bumps to the homelab repository.
+  # Never let two releases race: both would pin the chart and push conflicting
+  # bumps to the homelab repository.
   group: release
   cancel-in-progress: false
 

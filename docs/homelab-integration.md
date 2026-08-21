@@ -74,9 +74,10 @@ In `renovate.json`, alongside the existing per-app groups:
 }
 ```
 
-Renovate is the fallback here, not the primary path: releases are pushed by
-`bump-homelab.yml` within seconds. Renovate only catches a release whose bump
-pull request failed to open.
+Renovate is the fallback here, not the primary path: `bump-homelab.yml` commits
+the new version within seconds of the release. Renovate only catches a release
+whose bump never landed -- because the push kept losing a race, or the App token
+could not be minted.
 
 ## 4. Grant the pipeline access
 
