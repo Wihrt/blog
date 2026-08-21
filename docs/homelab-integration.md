@@ -89,6 +89,12 @@ required.
 Since the bump is a plain commit, nothing calls the GitHub API. Clone, fetch
 and push are the whole requirement.
 
+Note that `Wihrt/homelab` is private, so a token that cannot see it is refused
+with **404, not 403**. An expired token, a token whose resource owner is wrong,
+and a token left on "Public repositories" all produce the same `Not Found` as a
+misspelled repository name would. `bump-homelab.yml` runs `git ls-remote` up
+front to turn that into a message naming the four things worth checking.
+
 1. Go to **Settings → Developer settings → Personal access tokens →
    Fine-grained tokens → Generate new token**.
 2. Repository access: **Only select repositories** → `Wihrt/homelab`.

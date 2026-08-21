@@ -14,7 +14,9 @@ name: Bump homelab
 #
 # Since there is no pull request, nothing here calls the GitHub API -- only
 # clone, fetch and push. A fine-grained token scoped to the homelab repository
-# with Contents: Read and write is therefore the whole requirement.
+# with Contents: Read and write is therefore the whole requirement. That claim
+# only holds because the checkout below pins `ref`; left to default it would
+# call the repository API to resolve the default branch.
 
 on:
   workflow_call:
@@ -47,11 +49,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Check the homelab token is present
+      - name: Check the homelab token can actually read the repository
         # The built-in GITHUB_TOKEN is scoped to this repository and cannot
-        # write to another one, so a separate credential is required. Checked
-        # up front because a missing secret otherwise surfaces as an opaque
-        # authentication failure inside actions/checkout.
+        # write to another one, so a separate credential is required.
+        #
+        # Presence is not the useful check. A token that is set but expired or
+        # scoped to the wrong repositories fails inside actions/checkout as
+        # "Not Found", because GitHub answers 404 rather than 403 for a private
+        # repository a credential cannot see -- which reads like a typo in the
+        # repository name and is not. So test the capability the bump needs,
+        # reading a ref, and say what to look at when it is missing.
         env:
           HOMELAB_TOKEN: ${{ secrets.HOMELAB_TOKEN }}
         run: |
@@ -62,12 +69,35 @@ jobs:
             exit 1
           fi
 
+          # Output discarded: git echoes the remote URL, token included, when
+          # it fails. Actions masks registered secrets, but not relying on that
+          # costs nothing here since the message below is the useful one.
+          if ! git ls-remote \
+              "https://x-access-token:${HOMELAB_TOKEN}@github.com/${HOMELAB_REPO}.git" \
+              main >/dev/null 2>&1; then
+            echo "::error::HOMELAB_TOKEN cannot read $HOMELAB_REPO."
+            echo "::error::$HOMELAB_REPO is private, so a token without access gets 404, not 403;"
+            echo "::error::a wrong name and a wrong scope look identical from here."
+            echo "::error::Check, in order: the token has not expired; its resource owner is"
+            echo "::error::$GITHUB_REPOSITORY_OWNER; repository access names $HOMELAB_REPO explicitly"
+            echo "::error::rather than 'Public repositories'; and it grants Contents: Read and write."
+            echo "::error::See docs/homelab-integration.md."
+            exit 1
+          fi
+          echo "Token can read $HOMELAB_REPO."
+
       - uses: actions/checkout@v5
         with:
           repository: ${{ env.HOMELAB_REPO }}
           token: ${{ secrets.HOMELAB_TOKEN }}
           path: homelab
           fetch-depth: 0
+          # Pinned rather than left to default. Without a ref, checkout calls
+          # GET /repos/{owner}/{repo} to discover the default branch -- an API
+          # call this job is documented as not making, and one more thing that
+          # can 404. The bump pushes to main explicitly further down, so main
+          # is the branch to start from.
+          ref: main
 
       - uses: jdx/mise-action@v3
         with:
