@@ -334,7 +334,7 @@ Voici une configuration complète pour faire tourner Renovate sur votre propre G
 **1. Variables d'environnement GitLab** (Settings > CI/CD > Variables)
 
 ```bash
-RENOVATE_TOKEN=glpat-xxxxxxxxxxxxxxxxxxxx  # Personal Access Token GitLab
+RENOVATE_TOKEN=<votre Personal Access Token GitLab>
 RENOVATE_GIT_AUTHOR=renovate-bot <bot@company.com>
 ```
 
