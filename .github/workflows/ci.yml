@@ -265,12 +265,25 @@ jobs:
           }
           check /healthz 200
           check / 200
-          check /posts/hello-world/ 200
           check /index.xml 200
           check /index.json 200
           check /robots.txt 200
           check /sitemap.xml 200
           check /definitely-not-here 404
+
+          # An article has to be served, but no article in particular. This
+          # used to name a slug, and deleting that post failed the image job
+          # for a reason that had nothing to do with the image. Same reasoning
+          # as the asset check below: discover it from the rendered page.
+          post="$(curl -s http://localhost:8080/ \
+            | grep -oE '/posts/[A-Za-z0-9._-]+/' | head -1)"
+          if [ -z "$post" ]; then
+            echo "::error::No article link found on the home page"
+            fail=1
+          else
+            check "$post" 200
+            echo "Article serving confirmed on $post"
+          fi
           curl -sI http://localhost:8080/ | grep -qi '^x-content-type-options: nosniff' \
             || { echo "::error::security headers missing"; fail=1; }
 

@@ -5,10 +5,13 @@ date: {{ .Date }}
 lastmod: {{ .Date }}
 draft: true
 author: "Arnaud Hatzenbuhler"
-description: "One-sentence summary, between 50 and 160 characters, used for SEO and social cards."
+description: "Résumé en une phrase, entre 50 et 160 caractères, utilisé pour le SEO et les cartes sociales."
 tags:
   - kubernetes
+series:
+  - Veille techno
+series_order: 1
 showTableOfContents: true
 ---
 
-Write the article body here. It must be at least 200 words.
+Le corps de l'article. Il doit faire au moins 200 mots.

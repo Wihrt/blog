@@ -5,13 +5,24 @@
 # `guard-content.yml` lets automated PRs touch this file but CI still requires
 # every tag to already exist here at the time the post is validated.
 tags:
+  - ai
   - ansible
+  - api
   - argocd
   - automation
+  - backup
   - caddy
   - ci-cd
   - cilium
+  - cli
+  - cloud
+  - database
+  - devops
   - docker
+  - email
+  - git
+  - gitops
+  - go
   - helm
   - homelab
   - hugo
@@ -21,7 +32,14 @@ tags:
   - n8n
   - networking
   - observability
+  - open-source
+  - platform-engineering
+  - postgresql
+  - productivity
+  - python
+  - rust
   - security
   - self-hosted
   - storage
   - terraform
+  - typescript

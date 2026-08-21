@@ -1,5 +1,11 @@
 baseURL = "https://blog.brokenbymega.ovh/"
-defaultContentLanguage = "en"
+defaultContentLanguage = "fr"
+locale = "fr-FR"
+
+# Blowfish déclare `en` dans son propre config/_default/languages.en.toml. Une
+# fois le site passé en français, cette langue devenait une seconde langue et
+# Hugo publiait un site anglais vide sous /en/, référencé dans le sitemap.
+disableLanguages = ["en"]
 title = "Wihrt's Blog"
 timeZone = "Europe/Paris"
 
@@ -70,7 +76,7 @@ refLinksErrorLevel = "ERROR"
   enableStructuredBreadcrumbs = true
 
   mainSections = ["posts"]
-  description = "Homelab, Kubernetes and infrastructure notes."
+  description = "Veille technologique et notes techniques : Kubernetes, DevOps, self-hosting et automatisation."
   fingerprintAlgorithm = "sha512"
 
   [params.header]
@@ -137,19 +143,24 @@ refLinksErrorLevel = "ERROR"
 
 [[menu.main]]
   identifier = "posts"
-  name = "Posts"
+  name = "Articles"
   pageRef = "posts"
   weight = 10
+[[menu.main]]
+  identifier = "series"
+  name = "Séries"
+  pageRef = "series"
+  weight = 20
 [[menu.main]]
   identifier = "tags"
   name = "Tags"
   pageRef = "tags"
-  weight = 20
+  weight = 30
 [[menu.main]]
   identifier = "about"
-  name = "About"
+  name = "À propos"
   pageRef = "about"
-  weight = 30
+  weight = 40
 [[menu.footer]]
   name = "RSS"
   url = "/index.xml"
