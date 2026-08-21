@@ -1,0 +1,123 @@
+---
+name: Guard
+
+# The gate that makes unattended merging safe. An automated author may add
+# articles; it may not change how the site is built, packaged or deployed. If
+# this check is not green, branch protection blocks the merge, so the guard
+# fails closed.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    name: Guard automated pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Classify the author
+        id: author
+        env:
+          ACTOR: ${{ github.event.pull_request.user.login }}
+          ASSOCIATION: ${{ github.event.pull_request.author_association }}
+        run: |
+          # Anything that is not the repository owner acting directly is held to
+          # the content-only contract. That deliberately includes bots other
+          # than the expected one.
+          if [ "$ASSOCIATION" = "OWNER" ]; then
+            echo "automated=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "automated=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Author '$ACTOR' association '$ASSOCIATION'."
+
+      - name: Check out the pull request head read-only
+        # pull_request_target runs with repository secrets, so the untrusted
+        # head is only ever read as data: no checkout of its workflows, no
+        # build, no script from the branch is executed.
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Collect changed paths
+        id: changed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch --no-tags --depth=50 origin "$BASE_SHA" "$HEAD_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > /tmp/changed.txt
+          echo "Changed files:"
+          sed 's/^/  /' /tmp/changed.txt
+          echo "count=$(wc -l < /tmp/changed.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Enforce the content-only contract
+        if: steps.author.outputs.automated == 'true'
+        run: |
+          # Everything an article legitimately needs, and nothing that can
+          # change what runs in the cluster.
+          allowed='^(content/|assets/images/|static/images/)'
+          violations="$(grep -Ev "$allowed" /tmp/changed.txt || true)"
+          if [ -n "$violations" ]; then
+            echo "::error::An automated pull request may only touch content."
+            echo "$violations" | while read -r f; do
+              echo "::error file=$f::$f is outside content/, assets/images/ and static/images/"
+            done
+            exit 1
+          fi
+          echo "All changed paths are content."
+
+      - name: Reject an automated change to the tag vocabulary
+        if: steps.author.outputs.automated == 'true'
+        run: |
+          # data/tags.yaml is deliberately excluded from the allowlist above.
+          # Widening the taxonomy is a human decision; without this an automated
+          # author could invent a tag and then authorise it in the same pull
+          # request, which would defeat the vocabulary check entirely.
+          if grep -q '^data/tags\.yaml$' /tmp/changed.txt; then
+            echo "::error file=data/tags.yaml::Add new tags in a separate, human-authored pull request."
+            exit 1
+          fi
+
+      - name: Require a conventional pull request title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # The squash commit takes the pull request title, and release.yml
+          # derives the semver bump from it. A non-conventional title would
+          # publish a build under the wrong version.
+          if ! printf '%s' "$TITLE" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .{5,}'; then
+            echo "::error::Pull request title must be a conventional commit, e.g. 'feat(content): add a post about Cilium'."
+            echo "Got: $TITLE"
+            exit 1
+          fi
+
+      - name: Require exactly one post per automated pull request
+        if: steps.author.outputs.automated == 'true'
+        run: |
+          # One post per pull request keeps the version history readable and
+          # makes a revert a single, obvious operation.
+          posts="$(grep -c '^content/posts/.*\.md$' /tmp/changed.txt || true)"
+          if [ "$posts" -gt 1 ]; then
+            echo "::error::$posts posts in one pull request; open one per article."
+            exit 1
+          fi
+
+      - name: Label the pull request
+        if: steps.author.outputs.automated == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr edit "$PR" --add-label automated --add-label content || true

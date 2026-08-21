@@ -1,166 +1,135 @@
-# AstroPaper 📄
+# blog
 
-![AstroPaper](public/default-og.jpg)
-[![Figma](https://img.shields.io/badge/Figma-F24E1E?style=for-the-badge&logo=figma&logoColor=white)](https://www.figma.com/community/file/1356898632249991861)
-![Typescript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![GitHub](https://img.shields.io/github/license/satnaing/astro-paper?color=%232F3741&style=for-the-badge)
-[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white&style=for-the-badge)](https://conventionalcommits.org)
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg?style=for-the-badge)](http://commitizen.github.io/cz-cli/)
+Source and packaging for [blog.brokenbymega.ovh](https://blog.brokenbymega.ovh).
 
-AstroPaper is a minimal, responsive, accessible and SEO-friendly Astro blog theme. This theme is designed and crafted based on [my personal blog](https://satnaing.dev/blog).
+A Hugo site (Blowfish theme) served by Caddy, shipped as a container image and a Helm chart, and
+deployed to a homelab Kubernetes cluster by ArgoCD. Articles arrive as pull
+requests from an n8n workflow and are published without human intervention.
 
-Read [the blog posts](https://astro-paper.pages.dev/posts/) or check [the README Documentation Section](#-documentation) for more info.
+## How a post reaches production
 
-## 🔥 Features
+```text
+pull request (content/posts/*.md)
+  ├─ Guard      only content changed, conventional title, one post
+  └─ CI         front matter schema, tags, links, site build, chart, image, scan
+        ↓ auto-merge once both are green
+main
+  └─ Release    version from commit history
+                → multi-arch image → ghcr.io/wihrt/blog:X.Y.Z (signed, digest recorded)
+                → chart pinned to that digest → ghcr.io/wihrt/charts/blog:X.Y.Z
+                → pull request on Wihrt/homelab raising the chart version
+        ↓
+ArgoCD syncs → Caddy pods roll → the article is live
+```
 
-- [x] type-safe markdown
-- [x] super fast performance
-- [x] accessible (Keyboard/VoiceOver)
-- [x] responsive (mobile ~ desktops)
-- [x] SEO-friendly
-- [x] light & dark mode
-- [x] static search ([Pagefind](https://pagefind.app/))
-- [x] draft posts & pagination
-- [x] sitemap & rss feed
-- [x] MDX support
-- [x] collapsible table of contents
-- [x] followed best practices
-- [x] highly customizable
-- [x] dynamic OG image generation for blog posts ([Blog Post](https://astro-paper.pages.dev/posts/dynamic-og-image-generation-in-astropaper-blog-posts/))
-- [x] i18n ready
+The homelab repository tracks **only a chart version**. The image digest lives
+inside the chart, so a single semver there still resolves to one immutable
+build — and the `# renovate:` convention used across that repository stays
+intact.
 
-_Note: I've tested screen-reader accessibility of AstroPaper using **VoiceOver** on Mac and **TalkBack** on Android. I couldn't test all other screen-readers out there. However, accessibility enhancements in AstroPaper should be working fine on others as well._
+## Getting set up
 
-## ✅ Lighthouse Score
-
-<p align="center">
-  <a href="https://pagespeed.web.dev/report?url=https%3A%2F%2Fastro-paper.pages.dev%2F&form_factor=desktop">
-    <img width="710" alt="AstroPaper Lighthouse Score" src="AstroPaper-lighthouse-score.svg">
-  </a>
-</p>
-
-## 🚀 Project Structure
-
-Inside of AstroPaper, you'll see the following folders and files:
+Everything is installed by [mise](https://mise.jdx.dev):
 
 ```bash
-/
-├── public/
-│   ├── pagefind/          # auto-generated on build
-│   ├── favicon.svg
-│   └── default-og.jpg
-├── src/
-│   ├── assets/
-│   │   ├── icons/
-│   │   └── images/
-│   ├── components/
-│   ├── content/
-│   │   ├── pages/
-│   │   │   └── about.md
-│   │   └── posts/
-│   │       └── some-blog-posts.md
-│   ├── i18n/
-│   ├── layouts/
-│   ├── pages/
-│   ├── scripts/
-│   ├── styles/
-│   ├── types/
-│   ├── utils/
-│   ├── config.ts
-│   └── content.config.ts
-├── astro-paper.config.ts  # user-defined configurations
-└── astro.config.ts
+mise trust && mise install
+mise run bootstrap
 ```
 
-All blog posts are stored in the `src/content/posts/` directory. You can organise posts into subdirectories — the subdirectory name becomes part of the post URL.
+## Everyday commands
 
-## 📖 Documentation
+| Command | What it does |
+| --- | --- |
+| `mise run dev` | Dev server with drafts on <http://localhost:1313> |
+| `mise run new my-slug` | Scaffold `content/posts/my-slug.md` from the archetype |
+| `mise run build` | Production build into `public/`; warnings are fatal |
+| `mise run validate` | Check every post against `schemas/post.schema.json` |
+| `mise run links` | Link-check the built site |
+| `mise run lint` | Every pre-commit hook over the whole repo |
+| `mise run helm:test` | Chart unit tests |
+| `mise run docker:up` | Serve the container on :8080, rebuilding on every change |
+| `mise run docker:preview` / `docker:down` | Serve it in the background, then stop it |
+| `mise run ci` | The full pipeline, in the order CI runs it |
 
-Documentation can be read in two formats\_ _markdown_ & _blog post_.
+Run `mise run ci` before pushing; it is the same set of checks the pull request
+will run.
 
-- Configuration - [markdown](src/content/posts/how-to-configure-astropaper-theme.md) | [blog post](https://astro-paper.pages.dev/posts/how-to-configure-astropaper-theme/)
-- Add Posts - [markdown](src/content/posts/adding-new-post.md) | [blog post](https://astro-paper.pages.dev/posts/adding-new-posts-in-astropaper-theme/)
-- Customize Color Schemes - [markdown](src/content/posts/customizing-astropaper-theme-color-schemes.md) | [blog post](https://astro-paper.pages.dev/posts/customizing-astropaper-theme-color-schemes/)
-- Predefined Color Schemes - [markdown](src/content/posts/predefined-color-schemes.md) | [blog post](https://astro-paper.pages.dev/posts/predefined-color-schemes/)
+Two ways to see the site, for two different jobs. `mise run dev` is Hugo's own
+server: it reloads in milliseconds and is what you want while writing.
+`mise run docker:up` serves the real container and rebuilds it on change, which
+takes a few seconds but exercises Caddy, the cache headers and the hardened
+runtime. `compose.yaml` declares that runtime -- unprivileged user, read-only
+root filesystem, no capabilities, writable `/tmp` only -- to match the
+`securityContext` in `charts/blog`, and CI asserts against the same file so the
+two cannot drift.
 
-## 💻 Tech Stack
+## Writing a post
 
-**Main Framework** - [Astro](https://astro.build/)  
-**Type Checking** - [TypeScript](https://www.typescriptlang.org/)  
-**Styling** - [TailwindCSS](https://tailwindcss.com/)  
-**UI/UX** - [Figma Design File](https://www.figma.com/community/file/1356898632249991861)  
-**Static Search** - [Pagefind](https://pagefind.app/)  
-**Icons** - [Tablers](https://tabler-icons.io/)  
-**Code Formatting** - [Prettier](https://prettier.io/)  
-**Deployment** - [Cloudflare Pages](https://pages.cloudflare.com/)  
-**Linting** - [ESLint](https://eslint.org)  
-**Dynamic OG images** - [Satori](https://github.com/vercel/satori) + [Sharp](https://sharp.pixelplumbing.com/) + [Astro Fonts](https://docs.astro.build/en/guides/fonts/)
+`mise run new my-post` creates a file from `archetypes/posts.md`. The front
+matter contract is `schemas/post.schema.json`, and `content/posts/hello-world.md`
+is a working reference.
 
-## 👨🏻‍💻 Running Locally
+The rules that trip people up:
 
-You can start using this project locally by running the following command in your desired directory:
+- `description` must be 50–160 characters. It is the search and social summary.
+- Every tag must already exist in `data/tags.yaml`. Adding a tag is a separate,
+  human-authored change — automated pull requests cannot widen the vocabulary.
+- `slug` must match the filename and must never change after publication. If it
+  has to, add the old path to `aliases`.
+- No raw HTML, no `http://` links, no remotely hosted images. Commit images
+  next to the post.
+- The body needs at least 200 words; a shorter one usually means a truncated
+  generation.
 
-```bash
-# pnpm
-pnpm create astro@latest --template satnaing/astro-paper
+`mise run validate` reports all of this by file and field.
 
-# npm
-npm create astro@latest -- --template satnaing/astro-paper
+## What automation may and may not change
 
-# yarn
-yarn create astro --template satnaing/astro-paper
+`.github/workflows/guard-content.yml` restricts any pull request not authored by
+the repository owner to `content/`, `assets/images/` and `static/images/`. A
+pull request touching the chart, the Dockerfile, the workflows or
+`data/tags.yaml` fails the check, and branch protection blocks the merge. The
+guard fails closed: no green check, no merge.
 
-# bun
-bun create astro@latest -- --template satnaing/astro-paper
-```
+## Repository layout
 
-Then start the project by running the following commands:
+| Path | Contents |
+| --- | --- |
+| `content/` | Posts and pages |
+| `data/tags.yaml` | The allowed tag vocabulary |
+| `layouts/` | Theme overrides (empty; Blowfish needs none) |
+| `schemas/` | Front matter contract |
+| `scripts/` | `validate_content.py` |
+| `charts/blog/` | Helm chart, its unit tests and generated docs |
+| `Dockerfile`, `Caddyfile` | The runtime image |
+| `compose.yaml` | Local runtime, mirroring the chart's securityContext |
+| `.github/workflows/` | Guard, CI, release, homelab bump |
 
-```bash
-# install dependencies if you haven't done so in the previous step.
-pnpm install
+## Container vulnerability policy
 
-# start running the project
-pnpm dev
-```
+The runtime image adds no packages: the build stage is discarded and what
+remains is static HTML and a Caddyfile. Every scanner finding therefore
+originates in the `caddy:*-alpine` base image, and the only remediation is a
+newer base image.
 
-## Google Site Verification (optional)
+So CI blocks on `CRITICAL` and reports `HIGH` to the job summary without
+blocking. Blocking on `HIGH` would stall every release, including
+article-only ones, whenever upstream Caddy lags a CVE fix -- and a gate that
+blocks routinely and cannot be acted on is a gate that gets switched off.
+Renovate tracks the base image and opens the bump when a fix ships.
 
-You can add your [Google Site Verification HTML tag](https://support.google.com/webmasters/answer/9008080#meta_tag_verification&zippy=%2Chtml-tag) by setting `site.googleVerification` in `astro-paper.config.ts`:
+Exposure is also narrower than the raw counts suggest: Traefik terminates TLS
+and the Caddyfile sets `auto_https off`, so the server does no certificate
+handling at all.
 
-```ts file="astro-paper.config.ts"
-export default defineAstroPaperConfig({
-  site: {
-    // ...
-    googleVerification: "your-google-site-verification-value",
-  },
-  // ...
-});
-```
+## One-time setup outside this repository
 
-> See [this discussion](https://github.com/satnaing/astro-paper/discussions/334#discussioncomment-10139247) for adding AstroPaper to the Google Search Console.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command          | Action                                                                                                                           |
-| :--------------- | :------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm install`   | Installs dependencies                                                                                                            |
-| `pnpm dev`       | Starts local dev server at `localhost:4321`                                                                                      |
-| `pnpm build`     | Type-checks, builds the site, runs Pagefind indexing, and copies the index to `public/pagefind/`                                 |
-| `pnpm preview`   | Preview your build locally, before deploying                                                                                     |
-| `pnpm sync`      | Generates TypeScript types for all Astro modules. [Learn more](https://docs.astro.build/en/reference/cli-reference/#astro-sync). |
-| `pnpm astro ...` | Run CLI commands like `astro add`, `astro check`                                                                                 |
-
-## ✨ Feedback & Suggestions
-
-If you have any suggestions/feedback, you can contact me via [my email](mailto:satnaingdev+astropaper@gmail.com). Alternatively, feel free to open an issue if you find bugs or want to request new features.
-
-## 📜 License
-
-Licensed under the MIT License, Copyright © 2026
-
----
-
-Made with 🤍 by [Sat Naing](https://satnaing.dev) 👨🏻‍💻 and [contributors](https://github.com/satnaing/astro-paper/graphs/contributors).
+- Branch protection on `main` requiring the `Guard`, `Lint and validate`,
+  `Build site`, `Helm chart` and `Container image` checks.
+- "Allow auto-merge" enabled on this repository and on `Wihrt/homelab`.
+- A GitHub App installed on `Wihrt/homelab` with `contents: write` and
+  `pull-requests: write`, its credentials stored here as `HOMELAB_APP_ID` and
+  `HOMELAB_APP_PRIVATE_KEY`.
+- The `blog` application added once to
+  `kubernetes/bootstrap/argocd/homelab.yaml` in the homelab repository; see
+  `docs/homelab-integration.md`.

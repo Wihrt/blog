@@ -1,0 +1,32 @@
+---
+suite: image reference
+templates:
+  - deployment.yaml
+tests:
+  - it: falls back to the chart appVersion when no tag is set
+    chart:
+      appVersion: 9.9.9
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/wihrt/blog:9.9.9
+
+  - it: appends the digest so the workload is pinned to one immutable build
+    set:
+      image:
+        tag: "1.2.3"
+        digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "ghcr.io/wihrt/blog:1.2.3@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  - it: uses the explicit tag over the appVersion
+    chart:
+      appVersion: 9.9.9
+    set:
+      image:
+        tag: "1.2.3"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/wihrt/blog:1.2.3

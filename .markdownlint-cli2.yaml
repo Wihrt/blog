@@ -1,0 +1,18 @@
+---
+config:
+  # Posts are written for the web, not for an 80-column terminal.
+  line-length: false
+  # The theme renders the title from front matter, so the body starts at H2.
+  first-line-heading: false
+  # Bare URLs are caught by validate_content.py with a better message.
+  no-bare-urls: false
+  # Duplicate headings are legitimate across sections of a long post.
+  no-duplicate-heading:
+    siblings_only: true
+globs:
+  - "**/*.md"
+ignores:
+  - "public/**"
+  - "resources/**"
+  - "charts/**/README.md"
+  - ".github/**"

@@ -1,0 +1,32 @@
+{{/*
+  Render ```mermaid fences as diagrams.
+
+  Blowfish only wires up Mermaid for its {{< mermaid >}} shortcode, and it
+  decides in head.html via .Page.HasShortcode -- which runs before the content
+  is rendered, so a store flag set during rendering cannot reach it.
+
+  Posts here arrive as plain Markdown from automation and from Hashnode
+  exports, which emit fenced code blocks, not Hugo shortcodes. So this hook
+  handles the fence and pulls in the loader itself, once per page, using the
+  theme's own bundled assets -- no CDN, same fingerprint and integrity
+  treatment the theme applies.
+
+  .Inner is escaped rather than passed through safeHTML: Mermaid reads
+  textContent, which the browser un-escapes for us, and the site builds with
+  markup.goldmark.renderer.unsafe = false precisely so post content can never
+  inject markup.
+*/}}
+<pre class="not-prose mermaid">{{ .Inner | htmlEscape | safeHTML }}</pre>
+{{- if not (.Page.Store.Get "hasMermaidLoader") -}}
+  {{- .Page.Store.Set "hasMermaidLoader" true -}}
+  {{- $lib := resources.Get "lib/mermaid/mermaid.min.js" -}}
+  {{- $cfg := resources.Get "js/mermaid.js" | resources.Minify -}}
+  {{- with $lib -}}
+    {{- $js := slice $lib $cfg | resources.Concat "js/mermaid.bundle.js" | resources.Fingerprint (site.Params.fingerprintAlgorithm | default "sha512") -}}
+    <script
+      defer
+      type="text/javascript"
+      src="{{ $js.RelPermalink }}"
+      integrity="{{ $js.Data.Integrity }}"></script>
+  {{- end -}}
+{{- end -}}

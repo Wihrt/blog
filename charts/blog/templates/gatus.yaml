@@ -1,0 +1,19 @@
+{{- if and .Values.gatus.enabled .Values.ingress.enabled -}}
+{{- $host := include "blog.primaryHost" . -}}
+{{- if $host -}}
+apiVersion: monitoring.gatus.io/v1alpha1
+kind: GatusEndpoint
+metadata:
+  name: {{ include "blog.fullname" . }}
+  labels:
+    {{- include "blog.labels" . | nindent 4 }}
+spec:
+  enabled: true
+  name: {{ include "blog.fullname" . }}
+  group: {{ .Values.gatus.group | quote }}
+  url: {{ printf "https://%s/healthz" $host | quote }}
+  interval: {{ .Values.gatus.interval }}
+  conditions:
+    {{- toYaml .Values.gatus.conditions | nindent 4 }}
+{{- end }}
+{{- end }}

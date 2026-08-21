@@ -1,0 +1,54 @@
+---
+name: Auto-merge
+
+# Enables GitHub's native auto-merge on a conforming automated pull request.
+# Auto-merge only fires once every required check is green, so this workflow
+# grants no bypass: it just removes the human click.
+
+on:
+  workflow_run:
+    workflows: [Guard]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  enable:
+    name: Enable auto-merge
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Find the pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          number="$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" \
+            --jq '.[] | select(.state == "open") | .number' | head -1)"
+          if [ -z "$number" ]; then
+            echo "No open pull request for $HEAD_SHA."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          labels="$(gh pr view "$number" --repo "$REPO" --json labels --jq '[.labels[].name] | join(",")')"
+          case ",$labels," in
+            *,automated,*) echo "found=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Pull request #$number is not automated; leaving it to a human."
+               echo "found=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Enable auto-merge
+        if: steps.pr.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ steps.pr.outputs.number }}
+        run: gh pr merge "$PR" --repo "$REPO" --auto --squash --delete-branch

@@ -1,0 +1,22 @@
+---
+apiVersion: v2
+name: blog
+description: Static blog served by Caddy, built with Hugo
+type: application
+# Both fields are rewritten together by .github/workflows/release.yml so that a
+# chart version always identifies exactly one image build.
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://blog.brokenbymega.ovh
+sources:
+  - https://github.com/Wihrt/blog
+maintainers:
+  - name: Arnaud Hatzenbuhler
+    url: https://github.com/Wihrt
+keywords:
+  - blog
+  - hugo
+  - caddy
+  - static-site
+annotations:
+  artifacthub.io/license: MIT
