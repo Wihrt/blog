@@ -81,10 +81,17 @@ jobs:
           # back into the two non-conventional commits from the Astro scaffold.
           # So check only once there is a tag to check from.
           if git describe --tags --abbrev=0 >/dev/null 2>&1; then
-            cog check --from-latest-tag --ignore-merge-commits
-          else
-            echo "::notice::No release tag yet; commit-message check starts after the first release."
-          fi
+           # On PRs, individual commits are squash-merged so only warn;
+           # on merge_group the final commit message is validated strictly.
+           if [ "${{ github.event_name }}" = "pull_request" ]; then
+             cog check --from-latest-tag --ignore-merge-commits || \
+               echo "::warning::Non-conventional commits found; ensure the PR title follows conventional commits for the squash merge."
+           else
+             cog check --from-latest-tag --ignore-merge-commits
+           fi
+         else
+           echo "::notice::No release tag yet; commit-message check starts after the first release."
+         fi
 
       - name: Exercise the commit-message hook
         # `pre-commit run --all-files` skips commit-msg stage hooks, so this
