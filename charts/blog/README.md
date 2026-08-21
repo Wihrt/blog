@@ -1,6 +1,6 @@
 # blog
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.0](https://img.shields.io/badge/AppVersion-0.1.0-informational?style=flat-square)
+![Version: 0.1.1](https://img.shields.io/badge/Version-0.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.1](https://img.shields.io/badge/AppVersion-0.1.1-informational?style=flat-square)
 
 Static blog served by Caddy, built with Hugo
 
@@ -34,10 +34,10 @@ Static blog served by Caddy, built with Hugo
 | gatus.enabled | bool | `true` | Create a GatusEndpoint for external uptime monitoring. |
 | gatus.group | string | `"external"` | Endpoint group. |
 | gatus.interval | string | `"1m"` | Check interval. |
-| image.digest | string | `""` | Image digest (`sha256:...`). When set it is appended to the tag, which pins the deployment to one immutable build even though the homelab repo only ever tracks a chart version. Rewritten by the release workflow. |
+| image.digest | string | `"sha256:963d1cf12001a0a1527deb5ce1538b081b38e0fd77299a17a9804c30deb06d55"` | Image digest (`sha256:...`). When set it is appended to the tag, which pins the deployment to one immutable build even though the homelab repo only ever tracks a chart version. Rewritten by the release workflow. |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy. |
 | image.repository | string | `"ghcr.io/wihrt/blog"` | Image repository. |
-| image.tag | string | `""` | Image tag. Rewritten by the release workflow; defaults to `.Chart.AppVersion`. |
+| image.tag | string | `"0.1.1"` | Image tag. Rewritten by the release workflow; defaults to `.Chart.AppVersion`. |
 | imagePullSecrets | list | `[]` | Image pull secrets. |
 | ingress.annotations | object | `{"cert-manager.io/cluster-issuer":"letsencrypt-prod","kubernetes.io/tls-acme":"true"}` | Extra annotations. cert-manager issues the certificate named in `tls`. |
 | ingress.className | string | `"traefik"` | IngressClass to use. |

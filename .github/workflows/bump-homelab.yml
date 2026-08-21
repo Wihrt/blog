@@ -112,6 +112,11 @@ jobs:
           DIGEST: ${{ inputs.digest }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # OCI paths quoted in the body must be lowercase to be copy-pastable;
+          # github.repository keeps the account's capitalisation.
+          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          REPO_LC="${GITHUB_REPOSITORY,,}"
+
           branch="chore/blog-${VERSION}"
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -123,8 +128,8 @@ jobs:
           body="$(cat <<BODY
           Rolls the blog out to \`${VERSION}\` (was \`${PREVIOUS}\`).
 
-          - Chart: \`oci://ghcr.io/${{ github.repository_owner }}/charts/blog:${VERSION}\`
-          - Image: \`ghcr.io/${{ github.repository }}:${VERSION}${DIGEST:+@${DIGEST}}\`
+          - Chart: \`oci://ghcr.io/${OWNER_LC}/charts/blog:${VERSION}\`
+          - Image: \`ghcr.io/${REPO_LC}:${VERSION}${DIGEST:+@${DIGEST}}\`
 
           The chart pins the image by digest internally, so this single version
           change is enough to resolve one immutable build.

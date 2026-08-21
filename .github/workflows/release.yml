@@ -21,8 +21,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/${{ github.repository }}
-  CHART_REGISTRY: ghcr.io/${{ github.repository_owner }}/charts
+  # IMAGE and CHART_REGISTRY are resolved per job rather than here: OCI paths
+  # must be lowercase and github.repository keeps the account's capitalisation,
+  # which GitHub expressions cannot fold.
   MISE_YES: "1"
 
 jobs:
@@ -125,6 +126,17 @@ jobs:
           fetch-depth: 0
           ref: main
 
+      - name: Resolve the registry paths in lowercase
+        # OCI repository names must be lowercase, and both github.repository and
+        # github.repository_owner preserve the account's capitalisation. The
+        # image push only ever worked because mise.toml happened to define a
+        # lowercase IMAGE that mise-action exported over the workflow's value;
+        # CHART_REGISTRY had no such accident and failed the release with
+        # `invalid reference: invalid repository "Wihrt/charts/blog"`.
+        run: |
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+          echo "CHART_REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/charts" >> "$GITHUB_ENV"
+
       - uses: jdx/mise-action@v3
         with:
           cache: true
@@ -197,11 +209,27 @@ jobs:
 
       - name: Commit the pinned chart
         run: |
+          # README.md and values.schema.json are generated from Chart.yaml and
+          # values.yaml, so pinning the chart makes them stale. They have to be
+          # regenerated and committed together: the release commit carries
+          # [skip ci], so nothing notices until the next pull request fails the
+          # "generated file is stale" check for changes it did not make.
+          helm plugin install https://github.com/dadav/helm-schema --version 0.23.4 --verify=false
+          mise run helm:docs
+          mise run helm:schema
+
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add charts/blog/Chart.yaml charts/blog/values.yaml
+          git add charts/blog/Chart.yaml charts/blog/values.yaml \
+                  charts/blog/README.md charts/blog/values.schema.json
           git commit -m "chore(chart): pin blog $VERSION [skip ci]"
           git push origin HEAD:main
+
+          if ! git diff --quiet; then
+            echo "::error::Generated chart files are still dirty after the commit."
+            git --no-pager diff --stat
+            exit 1
+          fi
 
       - name: Package, push and sign the chart
         run: |
