@@ -150,12 +150,6 @@ refLinksErrorLevel = "ERROR"
   name = "About"
   pageRef = "about"
   weight = 30
-[[menu.main]]
-  identifier = "search"
-  name = "Search"
-  weight = 40
-  params = { action = "search" }
-
 [[menu.footer]]
   name = "RSS"
   url = "/index.xml"
