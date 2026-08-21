@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.1.1 - 2026-08-21
+#### Bug Fixes
+- (**ci**) stop external links from failing the build (#19) - (a46268e) - *Wihrt*, *Wihrt*, *Claude Opus 5 (1M context)*
+- (**release**) decouple chart tests from mutable values, push the tag (#18) - (d434412) - *Wihrt*, *Claude Opus 5 (1M context)*, *Claude Opus 5 (1M context)*, *Wihrt*, *Claude Opus 5 (1M context)*
+
+- - -
+
 ## v0.1.0 - 2026-08-21
 #### Features
 - replace Astro with Hugo, Caddy, a Helm chart and a full release pipeline (#2) - (d84b5a5) - *Wihrt*, *Claude Opus 5 (1M context)*, *Claude Opus 5 (1M context)*, *Claude Opus 5 (1M context)*, *Claude Opus 5 (1M context)*, *Claude Opus 5 (1M context)*, *Claude Opus 5 (1M context)*, *Claude Opus 5 (1M context)*, *Wihrt*, *Claude Opus 5 (1M context)*
