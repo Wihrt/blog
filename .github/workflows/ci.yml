@@ -65,6 +65,12 @@ jobs:
         # `pre-commit run --all-files` skips commit-msg stage hooks, so this
         # one was never covered either. Assert it both accepts and rejects.
         run: |
+          # cog verify builds a commit object to validate against, so it needs a
+          # committer identity and panics without one. A real commit always has
+          # it -- git refuses to commit otherwise -- but a CI runner does not.
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
           printf 'feat(content): a conventional message\n' > /tmp/ok.txt
           printf 'not a conventional message\n' > /tmp/bad.txt
           if ! pre-commit run --hook-stage commit-msg conventional-commit \
