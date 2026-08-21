@@ -186,11 +186,47 @@ jobs:
           docker rm -f blog-ci >/dev/null
           exit "$fail"
 
-      - name: Scan for vulnerabilities
+      # Vulnerability scanning is split in two on purpose.
+      #
+      # This image adds no packages of its own: the build stage is discarded
+      # and the runtime layer is static HTML plus a Caddyfile. Every finding
+      # therefore comes from the caddy:*-alpine base image, and the only
+      # remediation available is a newer base image -- which is Renovate's job,
+      # not this workflow's.
+      #
+      # Blocking on HIGH would mean blocking every release whenever upstream
+      # Caddy lags a CVE fix, including releases that only add an article. A
+      # gate that blocks routinely and cannot be acted on is a gate that gets
+      # disabled, so it is scoped to what genuinely must stop a release.
+      - name: Fail on critical vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: blog:ci
           format: table
           exit-code: "1"
           ignore-unfixed: true
-          severity: HIGH,CRITICAL
+          severity: CRITICAL
+
+      - name: Report high vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: blog:ci
+          format: table
+          output: trivy-high.txt
+          exit-code: "0"
+          ignore-unfixed: true
+          severity: HIGH
+
+      - name: Publish the vulnerability report
+        if: always()
+        run: |
+          {
+            echo "## Base image vulnerabilities (HIGH, not blocking)"
+            echo
+            echo "Findings originate in the \`caddy:*-alpine\` base image."
+            echo "Renovate bumps it when upstream ships a fix."
+            echo
+            echo '```'
+            cat trivy-high.txt 2>/dev/null || echo "none"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

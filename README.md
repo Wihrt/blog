@@ -94,6 +94,23 @@ guard fails closed: no green check, no merge.
 | `Dockerfile`, `Caddyfile` | The runtime image |
 | `.github/workflows/` | Guard, CI, release, homelab bump |
 
+## Container vulnerability policy
+
+The runtime image adds no packages: the build stage is discarded and what
+remains is static HTML and a Caddyfile. Every scanner finding therefore
+originates in the `caddy:*-alpine` base image, and the only remediation is a
+newer base image.
+
+So CI blocks on `CRITICAL` and reports `HIGH` to the job summary without
+blocking. Blocking on `HIGH` would stall every release, including
+article-only ones, whenever upstream Caddy lags a CVE fix -- and a gate that
+blocks routinely and cannot be acted on is a gate that gets switched off.
+Renovate tracks the base image and opens the bump when a fix ships.
+
+Exposure is also narrower than the raw counts suggest: Traefik terminates TLS
+and the Caddyfile sets `auto_https off`, so the server does no certificate
+handling at all.
+
 ## One-time setup outside this repository
 
 - Branch protection on `main` requiring the `Guard`, `Lint and validate`,
