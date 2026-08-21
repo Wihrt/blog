@@ -14,7 +14,7 @@ trivy = "0.74.0"
 cosign = "2.6.1"
 yq = "4.48.1"
 yamlfmt = "0.21.0"
-pre-commit = "4.4.0"
+pre-commit = "4.6.2"
 uv = "0.9.9"
 
 [env]
