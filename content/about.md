@@ -4,10 +4,11 @@ slug: "about"
 date: 2026-08-21T09:00:00+02:00
 draft: false
 description: "Notes on homelab infrastructure, Kubernetes and automation by Arnaud Hatzenbuhler."
-ShowToc: false
-ShowReadingTime: false
-ShowShareButtons: false
-hidemeta: true
+showTableOfContents: false
+showReadingTime: false
+showDate: false
+showAuthor: false
+showTaxonomies: false
 ---
 
 I run a homelab Kubernetes cluster and write down what I learn along the way:

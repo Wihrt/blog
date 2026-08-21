@@ -2,7 +2,7 @@
 
 Source and packaging for [blog.brokenbymega.ovh](https://blog.brokenbymega.ovh).
 
-A Hugo site served by Caddy, shipped as a container image and a Helm chart, and
+A Hugo site (Blowfish theme) served by Caddy, shipped as a container image and a Helm chart, and
 deployed to a homelab Kubernetes cluster by ArgoCD. Articles arrive as pull
 requests from an n8n workflow and are published without human intervention.
 
@@ -87,7 +87,7 @@ guard fails closed: no green check, no merge.
 | --- | --- |
 | `content/` | Posts and pages |
 | `data/tags.yaml` | The allowed tag vocabulary |
-| `layouts/` | Theme overrides (see `layouts/baseof.html` for why) |
+| `layouts/` | Theme overrides (empty; Blowfish needs none) |
 | `schemas/` | Front matter contract |
 | `scripts/` | `validate_content.py` |
 | `charts/blog/` | Helm chart, its unit tests and generated docs |

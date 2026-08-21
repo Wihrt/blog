@@ -5,7 +5,14 @@
   "description": "Contract every file under content/posts/ must satisfy. Automated authors (n8n) are validated against this in CI before a pull request can auto-merge.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["title", "slug", "date", "description", "tags", "draft"],
+  "required": [
+    "title",
+    "slug",
+    "date",
+    "description",
+    "tags",
+    "draft"
+  ],
   "properties": {
     "title": {
       "type": "string",
@@ -49,34 +56,82 @@
       "type": "boolean",
       "description": "Drafts are excluded from the production build."
     },
-    "author": { "type": "string", "minLength": 2 },
-    "canonicalURL": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "author": {
+      "type": "string",
+      "minLength": 2
+    },
+    "canonicalURL": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
     "weight": {
       "type": "integer",
       "minimum": 1,
       "description": "Lower values pin a post to the top of the list."
     },
-    "cover": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "image": { "type": "string" },
-        "alt": { "type": "string" },
-        "caption": { "type": "string" },
-        "relative": { "type": "boolean" },
-        "hidden": { "type": "boolean" }
-      }
-    },
-    "ShowToc": { "type": "boolean" },
-    "TocOpen": { "type": "boolean" },
-    "ShowReadingTime": { "type": "boolean" },
-    "ShowShareButtons": { "type": "boolean" },
-    "hidemeta": { "type": "boolean" },
-    "searchHidden": { "type": "boolean" },
     "aliases": {
       "type": "array",
-      "items": { "type": "string", "pattern": "^/" },
+      "items": {
+        "type": "string",
+        "pattern": "^/"
+      },
       "description": "Old paths to redirect from. Required when a slug has to change after publication."
+    },
+    "showTableOfContents": {
+      "type": "boolean"
+    },
+    "showReadingTime": {
+      "type": "boolean"
+    },
+    "showDate": {
+      "type": "boolean"
+    },
+    "showAuthor": {
+      "type": "boolean"
+    },
+    "showTaxonomies": {
+      "type": "boolean"
+    },
+    "showHero": {
+      "type": "boolean"
+    },
+    "heroStyle": {
+      "type": "string",
+      "enum": [
+        "basic",
+        "big",
+        "background",
+        "thumbAndBackground"
+      ]
+    },
+    "featureImage": {
+      "type": "string",
+      "description": "Hero image. Relative to the page bundle."
+    },
+    "featureImageAlt": {
+      "type": "string"
+    },
+    "featureImageCap": {
+      "type": "string"
+    },
+    "thumbnail": {
+      "type": "string"
+    },
+    "series": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Series this post belongs to."
+    },
+    "series_order": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "xml": {
+      "type": "boolean",
+      "description": "Set false to keep the post out of the sitemap and RSS."
     }
   }
 }

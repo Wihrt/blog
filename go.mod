@@ -2,4 +2,4 @@ module github.com/Wihrt/blog
 
 go 1.26
 
-require github.com/adityatelange/hugo-PaperMod v0.0.0-20260802175912-d3768854d00a // indirect
+require github.com/nunocoracao/blowfish/v2 v2.106.0

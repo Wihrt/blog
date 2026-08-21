@@ -1,40 +1,47 @@
 baseURL = "https://blog.brokenbymega.ovh/"
-locale = "en-us"
 defaultContentLanguage = "en"
 title = "Wihrt's Blog"
-theme = ["github.com/adityatelange/hugo-PaperMod"]
 timeZone = "Europe/Paris"
 
 enableRobotsTXT = true
+enableEmoji = true
 enableGitInfo = false
 buildDrafts = false
 buildFuture = false
 buildExpired = false
-canonifyURLs = false
-summaryLength = 30
-
-[pagination]
-  pagerSize = 10
+summaryLength = 0
 
 # Fail the build instead of silently emitting a broken link.
 refLinksErrorLevel = "ERROR"
 
 [module]
+  # The theme is declared here and only here. Adding a top-level `theme = ...`
+  # as well mounts the module a second time, which makes its data/ files
+  # collide with themselves and warns on every build.
   [[module.imports]]
-    # renovate: datasource=go depName=github.com/adityatelange/hugo-PaperMod
-    path = "github.com/adityatelange/hugo-PaperMod"
+    # renovate: datasource=go depName=github.com/nunocoracao/blowfish/v2
+    path = "github.com/nunocoracao/blowfish/v2"
 
 [permalinks]
   posts = "/posts/:slug/"
 
+[pagination]
+  pagerSize = 10
+
 [taxonomies]
   tag = "tags"
+  series = "series"
 
 [outputs]
-  # JSON on the home page feeds PaperMod's built-in Fuse.js search index.
+  # JSON on the home page is Blowfish's search index.
   home = ["HTML", "RSS", "JSON"]
   page = ["HTML"]
   section = ["HTML", "RSS"]
+
+[sitemap]
+  changefreq = "weekly"
+  filename = "sitemap.xml"
+  priority = 0.5
 
 [minify]
   disableXML = true
@@ -54,75 +61,102 @@ refLinksErrorLevel = "ERROR"
     endLevel = 4
 
 [params]
-  env = "production"
-  author = "Arnaud Hatzenbuhler"
-  description = "Homelab, Kubernetes and infrastructure notes."
-  keywords = ["homelab", "kubernetes", "infrastructure", "devops"]
-  defaultTheme = "auto"
-  DateFormat = "2006-01-02"
+  colorScheme = "blowfish"
+  defaultAppearance = "dark"
+  autoSwitchAppearance = true
+
+  enableSearch = true
+  enableCodeCopy = true
+  enableStructuredBreadcrumbs = true
+
   mainSections = ["posts"]
+  description = "Homelab, Kubernetes and infrastructure notes."
+  fingerprintAlgorithm = "sha512"
 
-  ShowReadingTime = true
-  ShowShareButtons = true
-  ShowPostNavLinks = true
-  ShowBreadCrumbs = true
-  ShowCodeCopyButtons = true
-  ShowToc = true
-  TocOpen = false
-  ShowWordCount = true
-  ShowRssButtonInSectionTermList = true
-  disableScrollToTop = false
-  hidemeta = false
-  hideSummary = false
-  comments = false
+  [params.header]
+    layout = "basic"
 
-  [params.assets]
-    favicon = "/favicon.svg"
-    disableHLJS = true
+  [params.footer]
+    showMenu = true
+    showCopyright = true
+    showThemeAttribution = true
+    showAppearanceSwitcher = true
+    showScrollToTop = true
 
-  [params.homeInfoParams]
-    Title = "Wihrt's Blog"
-    Content = "Homelab, Kubernetes and infrastructure notes."
+  [params.homepage]
+    layout = "page"
+    showRecent = true
+    showRecentItems = 10
+    showMoreLink = true
+    showMoreLinkDest = "/posts/"
+    cardView = true
 
-  [params.profileMode]
-    enabled = false
+  [params.article]
+    showDate = true
+    showDateUpdated = true
+    showAuthor = true
+    showBreadcrumbs = true
+    showDraftLabel = true
+    showEdit = true
+    editURL = "https://github.com/Wihrt/blog/edit/main/"
+    editAppendPath = true
+    showHeadingAnchors = true
+    showPagination = true
+    showReadingTime = true
+    showTableOfContents = true
+    showTaxonomies = true
+    showTags = true
+    showWordCount = true
+    showRelatedContent = true
+    relatedContentLimit = 3
+    sharingLinks = ["linkedin", "mastodon", "reddit", "email"]
 
-  [params.fuseOpts]
-    isCaseSensitive = false
-    shouldSort = true
-    threshold = 0.4
-    minMatchCharLength = 0
-    keys = ["title", "permalink", "summary", "content"]
+  [params.list]
+    showBreadcrumbs = true
+    showSummary = true
+    showTableOfContents = false
+    showTaxonomies = true
+    groupByYear = true
+    cardView = true
+    cardViewScreenWidth = false
 
-  [[params.socialIcons]]
-    name = "github"
-    url = "https://github.com/Wihrt"
-  [[params.socialIcons]]
-    name = "rss"
-    url = "index.xml"
+  [params.taxonomy]
+    showTermCount = true
+    showCardView = true
+
+  [params.term]
+    showBreadcrumbs = true
+    groupByYear = true
+    cardView = true
+
+[author]
+  name = "Arnaud Hatzenbuhler"
+  links = [
+    { github = "https://github.com/Wihrt" },
+  ]
 
 [[menu.main]]
   identifier = "posts"
   name = "Posts"
-  url = "/posts/"
+  pageRef = "posts"
   weight = 10
 [[menu.main]]
   identifier = "tags"
   name = "Tags"
-  url = "/tags/"
+  pageRef = "tags"
   weight = 20
 [[menu.main]]
-  identifier = "archives"
-  name = "Archive"
-  url = "/archives/"
+  identifier = "about"
+  name = "About"
+  pageRef = "about"
   weight = 30
 [[menu.main]]
   identifier = "search"
   name = "Search"
-  url = "/search/"
   weight = 40
-[[menu.main]]
-  identifier = "about"
-  name = "About"
-  url = "/about/"
-  weight = 50
+  params = { action = "search" }
+
+[[menu.footer]]
+  name = "RSS"
+  url = "/index.xml"
+  weight = 10

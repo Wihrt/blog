@@ -165,6 +165,23 @@ jobs:
           check /definitely-not-here 404
           curl -sI http://localhost:8080/ | grep -qi '^x-content-type-options: nosniff' \
             || { echo "::error::security headers missing"; fail=1; }
+
+          # The immutable matcher in the Caddyfile lists theme-specific asset
+          # paths. A theme change moves them, the matcher stops matching, and
+          # long-lived caching silently disappears -- so assert on a real asset
+          # discovered from the rendered page rather than a hardcoded path.
+          asset="$(curl -s http://localhost:8080/ \
+            | grep -oE '/(css|js|lib|fonts|assets)/[A-Za-z0-9._/-]+\.(css|js)' | head -1)"
+          if [ -z "$asset" ]; then
+            echo "::error::No fingerprinted asset found on the home page"
+            fail=1
+          elif ! curl -sI "http://localhost:8080$asset" | grep -qi 'cache-control:.*immutable'; then
+            echo "::error::$asset is not served with an immutable Cache-Control header"
+            curl -sI "http://localhost:8080$asset" | grep -i cache-control || true
+            fail=1
+          else
+            echo "Immutable caching confirmed on $asset"
+          fi
           docker logs blog-ci
           docker rm -f blog-ci >/dev/null
           exit "$fail"

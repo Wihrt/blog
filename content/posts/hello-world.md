@@ -11,8 +11,7 @@ tags:
   - hugo
   - kubernetes
   - automation
-ShowToc: true
-TocOpen: false
+showTableOfContents: true
 ---
 
 This post exists for two reasons. It is the first article on the new stack, and
