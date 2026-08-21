@@ -139,7 +139,7 @@
       "additionalProperties": false,
       "properties": {
         "digest": {
-          "default": "",
+          "default": "sha256:963d1cf12001a0a1527deb5ce1538b081b38e0fd77299a17a9804c30deb06d55",
           "description": "Image digest (`sha256:...`). When set it is appended to the tag, which\npins the deployment to one immutable build even though the homelab repo only\never tracks a chart version. Rewritten by the release workflow.",
           "title": "digest",
           "type": "string"
@@ -157,7 +157,7 @@
           "type": "string"
         },
         "tag": {
-          "default": "",
+          "default": "0.1.1",
           "description": "Image tag. Rewritten by the release workflow; defaults to `.Chart.AppVersion`.",
           "title": "tag",
           "type": "string"

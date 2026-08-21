@@ -21,8 +21,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/${{ github.repository }}
-  CHART_REGISTRY: ghcr.io/${{ github.repository_owner }}/charts
+  # IMAGE and CHART_REGISTRY are resolved per job rather than here: OCI paths
+  # must be lowercase and github.repository keeps the account's capitalisation,
+  # which GitHub expressions cannot fold.
   MISE_YES: "1"
 
 jobs:
@@ -124,6 +125,17 @@ jobs:
         with:
           fetch-depth: 0
           ref: main
+
+      - name: Resolve the registry paths in lowercase
+        # OCI repository names must be lowercase, and both github.repository and
+        # github.repository_owner preserve the account's capitalisation. The
+        # image push only ever worked because mise.toml happened to define a
+        # lowercase IMAGE that mise-action exported over the workflow's value;
+        # CHART_REGISTRY had no such accident and failed the release with
+        # `invalid reference: invalid repository "Wihrt/charts/blog"`.
+        run: |
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+          echo "CHART_REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/charts" >> "$GITHUB_ENV"
 
       - uses: jdx/mise-action@v3
         with:

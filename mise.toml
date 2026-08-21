@@ -20,7 +20,11 @@ uv = "0.12.5"
 
 [env]
 HUGO_ENV = "production"
-IMAGE = "ghcr.io/wihrt/blog"
+# No IMAGE here. jdx/mise-action exports this table into GITHUB_ENV, so a value
+# defined in both places silently overrides the workflow's. That is precisely
+# what happened: a hardcoded lowercase IMAGE masked the fact that release.yml
+# built its own from github.repository, which keeps the account's capital W and
+# is not a valid OCI path. release.yml now normalises the case itself.
 
 [hooks]
 enter = """
