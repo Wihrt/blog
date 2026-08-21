@@ -138,8 +138,10 @@ handling at all.
 - Branch protection on `main` requiring the `Guard`, `Lint and validate`,
   `Build site`, `Helm chart` and `Container image` checks.
 - "Allow auto-merge" enabled on this repository (content pull requests).
-- A GitHub App installed on `Wihrt/homelab` with `contents: write`, its
-  credentials stored here as `HOMELAB_APP_ID` and `HOMELAB_APP_PRIVATE_KEY`.
+- A fine-grained personal access token scoped to `Wihrt/homelab` with
+  `Contents: Read and write`, stored here as the `HOMELAB_TOKEN` secret. The
+  built-in `GITHUB_TOKEN` cannot write to another repository. Note that
+  fine-grained tokens expire; see `docs/homelab-integration.md`.
 - The `blog` application added once to
   `kubernetes/bootstrap/argocd/homelab.yaml` in the homelab repository; see
   `docs/homelab-integration.md`.

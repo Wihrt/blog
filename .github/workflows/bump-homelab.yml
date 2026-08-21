@@ -11,6 +11,10 @@ name: Bump homelab
 # linted, templated, unit-tested and kubeconform-validated by the release that
 # produced it. The cost is that the homelab repository's own checks never see
 # the change.
+#
+# Since there is no pull request, nothing here calls the GitHub API -- only
+# clone, fetch and push. A fine-grained token scoped to the homelab repository
+# with Contents: Read and write is therefore the whole requirement.
 
 on:
   workflow_call:
@@ -43,19 +47,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Mint a token for the homelab repository
-        id: token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.HOMELAB_APP_ID }}
-          private-key: ${{ secrets.HOMELAB_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: homelab
+      - name: Check the homelab token is present
+        # The built-in GITHUB_TOKEN is scoped to this repository and cannot
+        # write to another one, so a separate credential is required. Checked
+        # up front because a missing secret otherwise surfaces as an opaque
+        # authentication failure inside actions/checkout.
+        env:
+          HOMELAB_TOKEN: ${{ secrets.HOMELAB_TOKEN }}
+        run: |
+          if [ -z "$HOMELAB_TOKEN" ]; then
+            echo "::error::HOMELAB_TOKEN is not set. Create a fine-grained personal access token"
+            echo "::error::scoped to $HOMELAB_REPO with Contents: Read and write, then store it as"
+            echo "::error::the HOMELAB_TOKEN secret in this repository."
+            exit 1
+          fi
 
       - uses: actions/checkout@v5
         with:
           repository: ${{ env.HOMELAB_REPO }}
-          token: ${{ steps.token.outputs.token }}
+          token: ${{ secrets.HOMELAB_TOKEN }}
           path: homelab
           fetch-depth: 0
 

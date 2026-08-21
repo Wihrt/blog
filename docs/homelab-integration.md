@@ -81,20 +81,32 @@ could not be minted.
 
 ## 4. Grant the pipeline access
 
-`bump-homelab.yml` authenticates as a GitHub App rather than with a personal
-token, so the permission is scoped to one repository and the credential is
-short-lived.
+The workflow needs to push to a *different* repository. The built-in
+`GITHUB_TOKEN` is scoped to the repository that runs the workflow, so it cannot
+do this regardless of the permissions declared -- a separate credential is
+required.
 
-1. Create a GitHub App under your account.
-2. Permissions: **Contents: Read and write**. That is all it needs -- the bump
-   is committed straight to `main`, so no pull request permission is required.
-3. Install it on `Wihrt/homelab` only.
-4. Store the App ID as the `HOMELAB_APP_ID` secret and the private key as
-   `HOMELAB_APP_PRIVATE_KEY`, both in the **blog** repository.
+Since the bump is a plain commit, nothing calls the GitHub API. Clone, fetch
+and push are the whole requirement.
 
-`main` in the homelab repository must accept a push from that App. If you
-protect the branch later, either exempt the App or switch this workflow back to
-a pull request.
+1. Go to **Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens → Generate new token**.
+2. Repository access: **Only select repositories** → `Wihrt/homelab`.
+3. Repository permissions: **Contents: Read and write**. Nothing else.
+4. Store it in the **blog** repository:
+
+   ```bash
+   gh secret set HOMELAB_TOKEN
+   ```
+
+`main` in the homelab repository must accept a push from that token. If you
+protect the branch later, exempt it or switch this workflow back to a pull
+request.
+
+**A fine-grained token expires** -- a year at most. When it does, releases will
+publish their image and chart and then fail at this last step, with a clear
+error rather than a silent no-op. Put a reminder in the calendar, or move to a
+deploy key or GitHub App, neither of which expires.
 
 ## What a release does to this repository
 
