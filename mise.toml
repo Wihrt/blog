@@ -15,7 +15,7 @@ cosign = "2.6.1"
 yq = "4.48.1"
 yamlfmt = "0.21.0"
 pre-commit = "4.4.0"
-uv = "0.9.9"
+uv = "0.12.5"
 
 [env]
 HUGO_ENV = "production"
