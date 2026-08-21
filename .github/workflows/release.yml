@@ -72,8 +72,13 @@ jobs:
           # Deliberately not guarded. cog exits 0 when no commit warrants a
           # release and non-zero only when it genuinely fails, so the step must
           # be allowed to fail rather than mistake a crash for "nothing to do".
-          # --skip-ci keeps the bump commit from re-triggering this workflow.
-          cog bump --auto --skip-ci
+          #
+          # --disable-bump-commit creates the tag and nothing else. Nothing in
+          # this workflow pushes to main any more, which is what lets the branch
+          # ruleset require status checks with no bypass at all: on a personal
+          # repository the GitHub Actions app cannot be a bypass actor, so a
+          # workflow that pushed to main could not coexist with the rule.
+          cog bump --auto --disable-bump-commit
 
           after="$(cog get-version 2>/dev/null || true)"
 
@@ -92,16 +97,17 @@ jobs:
               | tee -a "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Push the tag and changelog
+      - name: Push the tag
         if: steps.bump.outputs.bumped == 'true'
         env:
           VERSION: ${{ steps.bump.outputs.version }}
         run: |
-          # cog creates lightweight tags and --follow-tags pushes annotated ones
-          # only, so the tag silently stayed local. With no tag on the remote,
-          # every later run recomputes the same first version and releases never
-          # advance. Push the tag explicitly.
-          git push origin HEAD:main
+          # Only the tag goes to the remote. The branch ruleset targets
+          # ~DEFAULT_BRANCH with target: branch, so tags are outside it.
+          #
+          # Pushed explicitly rather than with --follow-tags, which pushes
+          # annotated tags only: cog creates lightweight ones, so the tag once
+          # stayed local and every later run recomputed the same first version.
           git push origin "refs/tags/v${VERSION}"
 
   publish:
@@ -182,6 +188,11 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
+      # The pin below edits the workspace only and is never committed. The
+      # repository keeps the development chart; the released artifact lives in
+      # the registry, pinned to a digest. That keeps main free of release
+      # commits, which is what allows the branch ruleset to require status
+      # checks with no bypass.
       - name: Pin the chart to this exact build
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
@@ -207,30 +218,6 @@ jobs:
           fi
           echo "Chart pinned to $rendered"
 
-      - name: Commit the pinned chart
-        run: |
-          # README.md and values.schema.json are generated from Chart.yaml and
-          # values.yaml, so pinning the chart makes them stale. They have to be
-          # regenerated and committed together: the release commit carries
-          # [skip ci], so nothing notices until the next pull request fails the
-          # "generated file is stale" check for changes it did not make.
-          helm plugin install https://github.com/dadav/helm-schema --version 0.23.4 --verify=false
-          mise run helm:docs
-          mise run helm:schema
-
-          git config user.name  'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add charts/blog/Chart.yaml charts/blog/values.yaml \
-                  charts/blog/README.md charts/blog/values.schema.json
-          git commit -m "chore(chart): pin blog $VERSION [skip ci]"
-          git push origin HEAD:main
-
-          if ! git diff --quiet; then
-            echo "::error::Generated chart files are still dirty after the commit."
-            git --no-pager diff --stat
-            exit 1
-          fi
-
       - name: Package, push and sign the chart
         run: |
           helm package charts/blog --destination /tmp/chart
@@ -252,13 +239,23 @@ jobs:
         run: |
           # The tag was created by `cog bump` in the previous job.
           gh release view "v${VERSION}" >/dev/null 2>&1 && exit 0
-          cat > /tmp/notes.md <<NOTES
-          Image: \`${IMAGE}:${VERSION}@${DIGEST}\`
-          Chart: \`oci://${CHART_REGISTRY}/blog:${VERSION}\`
-          NOTES
+
+          # The changelog is no longer committed to the repository -- nothing
+          # pushes to main any more -- so it belongs here, where it is the
+          # durable record of what each version contained.
+          # shellcheck disable=SC2016
+          # The format strings are single-quoted on purpose: they contain
+          # literal Markdown backticks, and %s does the interpolation. Double
+          # quotes would make the shell treat those backticks as command
+          # substitution.
+          {
+            printf 'Image: `%s:%s@%s`\n' "$IMAGE" "$VERSION" "$DIGEST"
+            printf 'Chart: `oci://%s/blog:%s`\n\n' "$CHART_REGISTRY" "$VERSION"
+            cog changelog --at "v${VERSION}" 2>/dev/null || true
+          } > /tmp/notes.md
+
           gh release create "v${VERSION}" \
             --title "v${VERSION}" \
-            --generate-notes \
             --notes-file /tmp/notes.md
 
   homelab:
