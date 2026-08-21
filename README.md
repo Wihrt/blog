@@ -47,11 +47,21 @@ mise run bootstrap
 | `mise run links` | Link-check the built site |
 | `mise run lint` | Every pre-commit hook over the whole repo |
 | `mise run helm:test` | Chart unit tests |
-| `mise run docker:build` / `docker:run` | Build and run the image as Kubernetes does |
+| `mise run docker:up` | Serve the container on :8080, rebuilding on every change |
+| `mise run docker:preview` / `docker:down` | Serve it in the background, then stop it |
 | `mise run ci` | The full pipeline, in the order CI runs it |
 
 Run `mise run ci` before pushing; it is the same set of checks the pull request
 will run.
+
+Two ways to see the site, for two different jobs. `mise run dev` is Hugo's own
+server: it reloads in milliseconds and is what you want while writing.
+`mise run docker:up` serves the real container and rebuilds it on change, which
+takes a few seconds but exercises Caddy, the cache headers and the hardened
+runtime. `compose.yaml` declares that runtime -- unprivileged user, read-only
+root filesystem, no capabilities, writable `/tmp` only -- to match the
+`securityContext` in `charts/blog`, and CI asserts against the same file so the
+two cannot drift.
 
 ## Writing a post
 
@@ -92,6 +102,7 @@ guard fails closed: no green check, no merge.
 | `scripts/` | `validate_content.py` |
 | `charts/blog/` | Helm chart, its unit tests and generated docs |
 | `Dockerfile`, `Caddyfile` | The runtime image |
+| `compose.yaml` | Local runtime, mirroring the chart's securityContext |
 | `.github/workflows/` | Guard, CI, release, homelab bump |
 
 ## Container vulnerability policy

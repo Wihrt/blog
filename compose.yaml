@@ -1,0 +1,72 @@
+---
+# Local runtime for the built image.
+#
+# The constraints below mirror the securityContext in charts/blog, so what runs
+# here fails for the same reasons the pod would. They live in this file rather
+# than in a long `docker run` line so that the local check and CI assert against
+# one definition instead of two that can drift apart.
+#
+# This is for verifying the *container*. To write posts use `mise run dev`:
+# Hugo's own server reloads in milliseconds, where a rebuild here takes seconds.
+
+services:
+  blog:
+    image: ${BLOG_IMAGE:-blog:dev}
+    build:
+      context: .
+      args:
+        # Absolute URLs (canonical, Open Graph, share links) have to point at
+        # the port this is actually served on, not at production.
+        HUGO_BASEURL: http://localhost:${BLOG_PORT:-8080}/
+    # CI loads a pre-built image into the daemon and must never reach a registry
+    # for it; the tag is local-only either way.
+    pull_policy: never
+    ports:
+      - "${BLOG_PORT:-8080}:8080"
+
+    # --- must match charts/blog/values.yaml -------------------------------
+    user: "1000:1000"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      # Caddy's XDG paths point here; it is the only writable path.
+      - /tmp:size=16m
+    # ----------------------------------------------------------------------
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+    develop:
+      watch:
+        # The site is compiled into the image, so there is nothing useful to
+        # sync into a running container: every change needs Hugo to run again.
+        # Layer caching in the Dockerfile keeps a content-only rebuild short.
+        - action: rebuild
+          path: ./content
+        - action: rebuild
+          path: ./data
+        - action: rebuild
+          path: ./layouts
+        - action: rebuild
+          path: ./assets
+        - action: rebuild
+          path: ./static
+        - action: rebuild
+          path: ./archetypes
+        - action: rebuild
+          path: ./hugo.toml
+        - action: rebuild
+          path: ./Caddyfile
+        - action: rebuild
+          path: ./go.mod
+        - action: rebuild
+          path: ./go.sum
+        - action: rebuild
+          path: ./Dockerfile

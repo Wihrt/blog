@@ -136,17 +136,20 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Verify it runs the way Kubernetes runs it
-        # Read-only root, unprivileged user, no capabilities. Each of these has
-        # already broken this image once: Caddy's XDG paths need a writable
-        # /tmp, and its binary carried cap_net_bind_service, which cannot be
-        # exec'd with --cap-drop ALL.
+        # Runs through compose.yaml so the read-only root, unprivileged user and
+        # dropped capabilities are asserted from the same definition developers
+        # use locally, rather than from a second copy that can drift. Each of
+        # those constraints has already broken this image once: Caddy's XDG
+        # paths need a writable /tmp, and its binary carried
+        # cap_net_bind_service, which cannot be exec'd with all capabilities
+        # dropped.
+        #
+        # --no-build guarantees the image under test is the one buildx produced
+        # above; --wait blocks until the container's healthcheck passes.
+        env:
+          BLOG_IMAGE: blog:ci
         run: |
-          docker run -d --rm --read-only --user 1000:1000 --tmpfs /tmp \
-            --cap-drop ALL -p 8080:8080 --name blog-ci blog:ci
-          for _ in $(seq 1 30); do
-            curl -sf http://localhost:8080/healthz >/dev/null && break
-            sleep 1
-          done
+          docker compose up --detach --no-build --wait
           fail=0
           check() {
             actual="$(curl -so /dev/null -w '%{http_code}' "http://localhost:8080$1")"
@@ -182,8 +185,8 @@ jobs:
           else
             echo "Immutable caching confirmed on $asset"
           fi
-          docker logs blog-ci
-          docker rm -f blog-ci >/dev/null
+          docker compose logs --no-color
+          docker compose down --remove-orphans
           exit "$fail"
 
       # Vulnerability scanning is split in two on purpose.
