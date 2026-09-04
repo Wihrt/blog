@@ -79,6 +79,13 @@ refLinksErrorLevel = "ERROR"
   description = "Veille technologique et notes techniques : Kubernetes, DevOps, self-hosting et automatisation."
   fingerprintAlgorithm = "sha512"
 
+  # Umami est auto-hébergé (https://umami.brokenbymega.ovh) ; seuls
+  # /script.js et /api/send y sont publics, le dashboard reste derrière
+  # Pocket ID. Blowfish n'injecte ce script qu'en build production.
+  [params.umamiAnalytics]
+    websiteid = "9775dbb8-9b32-41ff-8093-db13db68491b"
+    domain = "umami.brokenbymega.ovh"
+
   [params.header]
     layout = "basic"
 
