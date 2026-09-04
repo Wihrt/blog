@@ -1,0 +1,7 @@
+# CVE-2026-56854 : bypass d'authentification dans golang.org/x/crypto/ssh,
+# embarqué dans le binaire Caddy de l'image de base. Ce conteneur ne sert que
+# du HTML statique en HTTP : aucun serveur SSH ne tourne, le code vulnérable
+# est inatteignable. Aucune image caddy corrigée n'existe encore (2.11.4 est
+# la dernière) ; Renovate proposera le bump dès sa sortie. L'expiration force
+# la réévaluation si l'upstream traîne.
+CVE-2026-56854 exp:2026-12-04
