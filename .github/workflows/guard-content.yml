@@ -53,7 +53,7 @@ jobs:
           echo "profile=$profile" >> "$GITHUB_OUTPUT"
           echo "Author '$ACTOR' (association '$ASSOCIATION') -> profile '$profile'."
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         # pull_request_target runs with repository secrets, so the untrusted
         # head is only ever read as data: nothing from the branch is executed.
         with:
