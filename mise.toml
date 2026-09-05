@@ -16,7 +16,7 @@ yq = "4.53.6"
 yamlfmt = "0.21.0"
 cocogitto = "7.0.0"
 pre-commit = "4.6.2"
-uv = "0.12.6"
+uv = "0.12.9"
 
 [env]
 HUGO_ENV = "production"
