@@ -86,7 +86,7 @@ jobs:
           fi
           echo "Token can read $HOMELAB_REPO."
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ${{ env.HOMELAB_REPO }}
           token: ${{ secrets.HOMELAB_TOKEN }}
@@ -99,7 +99,7 @@ jobs:
           # is the branch to start from.
           ref: main
 
-      - uses: jdx/mise-action@v3
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4
         with:
           cache: true
           install: false
