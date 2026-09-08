@@ -1,7 +1,7 @@
 ---
 title: "Do-nothing scripting : automatiser progressivement ses procédures ops"
 slug: "do-nothing-scripting-automatiser-progressivement-ses-procedures-ops"
-date: 2026-09-08T21:41:44+00:00
+date: 2026-09-08T22:16:45+00:00
 draft: false
 author: "Arnaud Hatzenbuhler"
 description: "Un pattern simple pour formaliser en code les procédures manuelles avant de les automatiser étape par étape."
@@ -25,6 +25,7 @@ Toute équipe ops accumule des procédures manuelles qui n'ont jamais été auto
 Dan Slimmon décrit un pattern simple : un script qui n'exécute aucune action à la place de l'opérateur, mais qui encode chaque étape d'une procédure manuelle dans une fonction dédiée. Le script guide l'utilisateur pas à pas, affiche les instructions de l'étape en cours, puis attend une confirmation avant de passer à la suivante.
 
 Les bénéfices immédiats sont concrets :
+
 - La procédure est formalisée dans du code, pas dans un doc qu'on retrouve difficilement.
 - L'exécution est traçable et reproductible.
 - Chaque fonction peut être remplacée par une implémentation automatisée quand le moment est venu, sans toucher au reste.
