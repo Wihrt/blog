@@ -40,10 +40,24 @@ jobs:
         env:
           ACTOR: ${{ github.event.pull_request.user.login }}
           ASSOCIATION: ${{ github.event.pull_request.author_association }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
+          # A pull request branched from content/ is an automated content pull
+          # request whatever its author says. The n8n workflow opens its pull
+          # requests with the owner's own token, so author_association is OWNER
+          # and the owner profile would apply -- no content label, and
+          # auto-merge.yml would leave the post sitting there forever.
+          #
+          # This test runs before the OWNER one, and it *narrows* what the pull
+          # request may do rather than widening it: paths restricted to
+          # content/, a single post, data/tags.yaml off limits. A human keeps
+          # full owner rights by branching under any other prefix.
+          #
           # Matched as literal strings: "renovate[bot]" contains [ ] which a
           # shell case pattern would read as a character class.
-          if [ "$ASSOCIATION" = "OWNER" ]; then
+          if [ "${HEAD_REF#content/}" != "$HEAD_REF" ]; then
+            profile=content
+          elif [ "$ASSOCIATION" = "OWNER" ]; then
             profile=owner
           elif [ "$ACTOR" = "renovate[bot]" ] || [ "$ACTOR" = "app/renovate" ]; then
             profile=dependencies
@@ -51,7 +65,7 @@ jobs:
             profile=content
           fi
           echo "profile=$profile" >> "$GITHUB_OUTPUT"
-          echo "Author '$ACTOR' (association '$ASSOCIATION') -> profile '$profile'."
+          echo "Author '$ACTOR' (association '$ASSOCIATION') on '$HEAD_REF' -> profile '$profile'."
 
       - uses: actions/checkout@v5
         # pull_request_target runs with repository secrets, so the untrusted

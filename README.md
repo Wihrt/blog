@@ -91,8 +91,12 @@ The rules that trip people up:
 
 ## What automation may and may not change
 
-`.github/workflows/guard-content.yml` restricts any pull request not authored by
-the repository owner to `content/`, `assets/images/` and `static/images/`. A
+`.github/workflows/guard-content.yml` restricts automated content pull requests
+to `content/`, `assets/images/` and `static/images/`. A pull request counts as
+automated when its branch starts with `content/`, or when its author is not the
+repository owner. The branch prefix matters because the n8n workflow opens its
+pull requests with the owner's own token: without it they would read as owner
+pull requests, never get the `content` label, and never auto-merge. A
 pull request touching the chart, the Dockerfile, the workflows or
 `data/tags.yaml` fails the check, and branch protection blocks the merge. The
 guard fails closed: no green check, no merge.
