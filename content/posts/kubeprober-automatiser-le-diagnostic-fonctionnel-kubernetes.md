@@ -13,7 +13,7 @@ tags:
   - devops
 series:
   - Veille techno
-series_order: 85
+series_order: 79
 showTableOfContents: true
 ---
 

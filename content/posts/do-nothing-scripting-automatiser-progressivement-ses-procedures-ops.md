@@ -12,7 +12,7 @@ tags:
   - productivity
 series:
   - Veille techno
-series_order: 82
+series_order: 76
 showTableOfContents: true
 ---
 
