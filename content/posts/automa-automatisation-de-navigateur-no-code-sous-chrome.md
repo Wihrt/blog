@@ -12,7 +12,7 @@ tags:
   - platform-engineering
 series:
   - Veille techno
-series_order: 84
+series_order: 78
 showTableOfContents: true
 ---
 
