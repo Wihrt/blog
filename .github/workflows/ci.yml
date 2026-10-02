@@ -152,6 +152,20 @@ jobs:
         # every reader and must stop the pipeline.
         run: mise run links
 
+      - name: Cache external link results
+        # lychee.toml keeps successful checks for max_cache_age (2d) in
+        # .lycheecache, but a fresh runner starts without it and re-fetched
+        # every external URL of every post: over five minutes on the release
+        # path. Restored from the latest run, only new or expired URLs go out.
+        # The key is unique per run so the updated cache is always saved.
+        if: always()
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: .lycheecache
+          key: lychee-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            lychee-
+
       - name: Report unreachable external links
         # Never blocking. An external site can be down, rate-limit CI runners,
         # or block their address ranges, none of which says anything about this
