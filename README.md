@@ -15,7 +15,7 @@ pull request (content/posts/*.md)
         ↓ auto-merge once both are green
 main
   └─ Release    version from commit history
-                → multi-arch image → ghcr.io/wihrt/blog:X.Y.Z (signed, digest recorded)
+                → amd64 image → ghcr.io/wihrt/blog:X.Y.Z (signed, digest recorded)
                 → chart pinned to that digest → ghcr.io/wihrt/charts/blog:X.Y.Z
                 → commit on Wihrt/homelab raising the chart version
         ↓
