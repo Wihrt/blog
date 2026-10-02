@@ -27,10 +27,10 @@
       ]
     },
     {
-      "description": "Blowfish is semver-tagged, so it needs no special scheduling; group it so the theme moves in one pull request",
+      "description": "Blowfish is semver-tagged, so it needs no special scheduling; group it so the theme moves in one pull request. The regex covers every major module path (/v2, /v3, ...), so a major bump stays in the group",
       "groupName": "blowfish",
       "matchPackageNames": [
-        "github.com/nunocoracao/blowfish/v2"
+        "/^github\\.com/nunocoracao/blowfish(/v\\d+)?$/"
       ]
     },
     {
