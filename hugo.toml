@@ -25,8 +25,8 @@ refLinksErrorLevel = "ERROR"
   # as well mounts the module a second time, which makes its data/ files
   # collide with themselves and warns on every build.
   [[module.imports]]
-    # renovate: datasource=go depName=github.com/nunocoracao/blowfish/v2
-    path = "github.com/nunocoracao/blowfish/v2"
+    # renovate: datasource=go depName=github.com/nunocoracao/blowfish/v3
+    path = "github.com/nunocoracao/blowfish/v3"
 
 [permalinks]
   posts = "/posts/:slug/"

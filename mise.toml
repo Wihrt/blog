@@ -15,7 +15,7 @@ cosign = "3.1.3"
 yq = "4.54.1"
 yamlfmt = "0.21.0"
 cocogitto = "7.0.0"
-pre-commit = "4.6.2"
+prek = "0.5.4"
 uv = "0.12.20"
 
 [env]
@@ -28,17 +28,17 @@ HUGO_ENV = "production"
 
 [hooks]
 enter = """
-pre-commit install --install-hooks >/dev/null 2>&1 || true
+[ -n "${CI:-}" ] || prek install --prepare-hooks >/dev/null 2>&1 || true
 helm plugin list 2>/dev/null | grep -q '^schema' || helm plugin install https://github.com/dadav/helm-schema --version 0.23.4 --verify=false >/dev/null 2>&1 || true
 helm plugin list 2>/dev/null | grep -q '^unittest' || helm plugin install https://github.com/helm-unittest/helm-unittest --version 1.1.2 --verify=false >/dev/null 2>&1 || true
 """
 
 [tasks.bootstrap]
-description = "Install every local dependency (Hugo modules, pre-commit hooks, Helm plugins)"
+description = "Install every local dependency (Hugo modules, prek git hooks, Helm plugins)"
 run = [
   "hugo mod get -u ./...",
-  "pre-commit install --install-hooks",
-  "pre-commit install --hook-type commit-msg",
+  # Installs every type in default_install_hook_types (pre-commit, commit-msg).
+  "prek install --prepare-hooks",
 ]
 
 [tasks.dev]
@@ -76,8 +76,8 @@ description = "Report unreachable external links; never fails (run build first)"
 run = "lychee --config lychee.toml --root-dir \"{{config_root}}/public\" --no-progress public || true"
 
 [tasks.lint]
-description = "Run every pre-commit hook against the whole repo"
-run = "pre-commit run --all-files"
+description = "Run every git hook (prek) against the whole repo"
+run = "prek run --all-files"
 
 [tasks."helm:lint"]
 description = "Lint the blog Helm chart"

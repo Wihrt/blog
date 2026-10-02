@@ -1,4 +1,5 @@
 ---
+# Hooks run by prek (https://prek.j178.dev), which reads this pre-commit format.
 # Every hook here also runs in CI (`mise run lint`), so a green local commit and
 # a green pull request mean the same thing.
 default_install_hook_types:
@@ -81,7 +82,7 @@ repos:
         entry: mise
         args: ["run", "validate"]
         pass_filenames: false
-        # always_run rather than a files: filter. pre-commit builds that filter
+        # always_run rather than a files: filter. prek builds that filter
         # from files present in the working tree, so a commit that only DELETES
         # posts matches nothing and the hook never fires -- which is exactly how
         # every post once reached a commit unnoticed. The check takes well under
