@@ -31,18 +31,18 @@ jobs:
         with:
           cache: true
 
-      - name: Cache pre-commit environments
+      - name: Cache prek hook environments
         # Measured: creating these environments took 64s of this job's 93s,
         # while running the hooks took seconds. The key covers both the hook
-        # definitions and mise.toml, which pins the pre-commit version itself;
+        # definitions and mise.toml, which pins the prek version itself;
         # restore-keys give a partial hit so that changing one hook rebuilds
         # only that hook's environment.
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.pre-commit-config.yaml', 'mise.toml') }}
+          path: ~/.cache/prek
+          key: prek-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.pre-commit-config.yaml', 'mise.toml') }}
           restore-keys: |
-            pre-commit-${{ runner.os }}-${{ runner.arch }}-
+            prek-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Cache Hugo modules
         # The theme is a Go module fetched on every build. go.sum pins it
@@ -65,8 +65,8 @@ jobs:
           helm plugin install https://github.com/helm-unittest/helm-unittest --version 1.1.2 --verify=false
           helm plugin install https://github.com/dadav/helm-schema --version 0.23.4 --verify=false
 
-      - name: Run every pre-commit hook
-        run: pre-commit run --all-files --show-diff-on-failure
+      - name: Run every git hook (prek)
+        run: prek run --all-files --show-diff-on-failure
 
       - name: Exercise the release tooling
         # release.yml never runs on a pull request, so nothing here used to
@@ -87,7 +87,7 @@ jobs:
           fi
 
       - name: Exercise the commit-message hook
-        # `pre-commit run --all-files` skips commit-msg stage hooks, so this
+        # `prek run --all-files` skips commit-msg stage hooks, so this
         # one was never covered either. Assert it both accepts and rejects.
         run: |
           # cog verify builds a commit object to validate against, so it needs a
@@ -98,12 +98,12 @@ jobs:
 
           printf 'feat(content): a conventional message\n' > /tmp/ok.txt
           printf 'not a conventional message\n' > /tmp/bad.txt
-          if ! pre-commit run --hook-stage commit-msg conventional-commit \
+          if ! prek run --hook-stage commit-msg conventional-commit \
                --commit-msg-filename /tmp/ok.txt; then
             echo "::error::The commit-message hook rejected a valid message."
             exit 1
           fi
-          if pre-commit run --hook-stage commit-msg conventional-commit \
+          if prek run --hook-stage commit-msg conventional-commit \
              --commit-msg-filename /tmp/bad.txt; then
             echo "::error::The commit-message hook accepted an invalid message."
             exit 1
