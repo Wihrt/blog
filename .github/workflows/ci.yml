@@ -320,7 +320,7 @@ jobs:
       # gate that blocks routinely and cannot be acted on is a gate that gets
       # disabled, so it is scoped to what genuinely must stop a release.
       - name: Fail on critical vulnerabilities
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: blog:ci
           format: table
@@ -329,7 +329,7 @@ jobs:
           severity: CRITICAL
 
       - name: Report high vulnerabilities
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: blog:ci
           format: table
