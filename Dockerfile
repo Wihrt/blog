@@ -6,7 +6,7 @@
 # renovate: datasource=docker depName=hugomods/hugo
 ARG HUGO_IMAGE=hugomods/hugo:0.165.0
 # renovate: datasource=docker depName=caddy
-ARG CADDY_IMAGE=caddy:2.11.4-alpine
+ARG CADDY_IMAGE=caddy:2.11.6-alpine
 
 FROM ${HUGO_IMAGE} AS build
 
