@@ -16,7 +16,7 @@ yq = "4.54.1"
 yamlfmt = "0.21.0"
 cocogitto = "7.0.0"
 prek = "0.5.7"
-uv = "0.13.5"
+uv = "0.13.6"
 
 [env]
 HUGO_ENV = "production"
