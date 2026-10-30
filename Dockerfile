@@ -50,6 +50,12 @@ ENV XDG_CONFIG_HOME=/tmp \
 RUN setcap -r /usr/bin/caddy && \
     [ -z "$(getcap /usr/bin/caddy)" ]
 
+# CVE-2026-111497 (CRITICAL, brotli-libs 1.2.0-r0) is fixed in Alpine but the
+# caddy base image has not been rebuilt yet, so the release gate blocks every
+# article. Require the patched package until Renovate brings a base image that
+# already ships brotli-libs >= 1.2.1-r0; drop this step then.
+RUN apk add --no-cache 'brotli-libs>=1.2.1-r0'
+
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /public /srv
 
