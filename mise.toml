@@ -15,7 +15,7 @@ cosign = "3.1.4"
 yq = "4.54.1"
 yamlfmt = "0.21.0"
 cocogitto = "7.0.0"
-prek = "0.5.9"
+prek = "0.5.10"
 uv = "0.13.7"
 
 [env]
